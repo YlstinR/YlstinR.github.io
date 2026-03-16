@@ -211,10 +211,62 @@ function autoFillDocForm(formId) {
   trySet('nivel', ctx.nivel);
 }
 
+document.getElementById('profile-tipologia')?.addEventListener('change', (e) => {
+  const mode = e.target.value;
+  const form = document.getElementById('profile-form');
+  if (!form) return;
+
+  const areaSelect = form['area'];
+  const gradoSelect = form['grado'];
+  const seccionInput = form['seccion'];
+
+  if (mode === 'unidocente') {
+    // Unidocente: Todas las áreas, Todos los grados
+    if (areaSelect) {
+      if (!Array.from(areaSelect.options).some(o => o.value === 'Todas las áreas')) {
+         const opt = new Option('Todas las áreas', 'Todas las áreas');
+         areaSelect.add(opt, 0);
+      }
+      areaSelect.value = 'Todas las áreas';
+      areaSelect.disabled = true;
+    }
+    if (gradoSelect) {
+      if (!Array.from(gradoSelect.options).some(o => o.value === 'Multi-grado (Todos)')) {
+         const opt = new Option('Multi-grado (Todos)', 'Multi-grado (Todos)');
+         gradoSelect.add(opt, 0);
+      }
+      gradoSelect.value = 'Multi-grado (Todos)';
+      gradoSelect.disabled = true;
+    }
+    if (seccionInput) {
+      seccionInput.value = 'Aula Única';
+      seccionInput.readOnly = true;
+    }
+  } else {
+    // Polidocente o Multigrado manual
+    if (areaSelect) areaSelect.disabled = false;
+    if (gradoSelect) gradoSelect.disabled = false;
+    if (seccionInput) seccionInput.readOnly = false;
+    
+    // Si era unidocente y cambió, limpiar los temporales si el usuario quiere
+    if (areaSelect && areaSelect.value === 'Todas las áreas') areaSelect.value = '';
+    if (gradoSelect && gradoSelect.value === 'Multi-grado (Todos)') gradoSelect.value = '';
+  }
+});
+
 document.getElementById('btn-save-profile')?.addEventListener('click', () => {
   const form = document.getElementById('profile-form');
   if (!form.checkValidity()) { form.querySelector(':invalid')?.focus(); return; }
-  submitToBackend(Object.fromEntries(new FormData(form)), '/api/tma/profile');
+  
+  // Capturar datos incluyendo los deshabilitados
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData);
+  
+  // Forzar valores si están deshabilitados
+  if (form['area'].disabled) data.area = form['area'].value;
+  if (form['grado'].disabled) data.grado = form['grado'].value;
+  
+  submitToBackend(data, '/api/tma/profile');
 });
 
 document.getElementById('btn-login')?.addEventListener('click', () => {
