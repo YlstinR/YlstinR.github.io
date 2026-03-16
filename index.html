@@ -1,732 +1,2571 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>DOCENTE IA — Asistente Pedagógico</title>
-    <meta name="description" content="Asistente pedagógico inteligente para docentes peruanos. Genera sesiones, unidades, rúbricas y más.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
-    <!-- Telegram WebApps API -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="./style.css" />
-  </head>
-  <body>
-    <div id="app" class="app-container">
-      
-      <div class="status-bar">
-        <span>Portal Pedagógico</span>
-        <div class="status-indicator">
-          <div class="dot"></div>
-          <span id="sync-status">Conectado</span>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#18191B">
+  <title>Docent-IA | Mini App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Procesando con IA…</div>
+</div>
+
+<div id="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <svg class="topbar-logo" viewBox="820 300 420 420" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#B9583B" d="M1009.74 411.912L1038.21 411.892L1038.44 680.902L1009.69 680.855Z"/>
+        <path fill="var(--text)" d="M1214.9 324.075C1216.55 327.24 1215.89 568.289 1215.95 591.657C1164 617.989 1106.32 649.928 1054.85 678.03L1054.4 677.594C1052.4 672.632 1053.65 433.51 1053.64 410.169Z"/>
+        <path fill="var(--text)" d="M832.334 323.61C886.295 351.645 940.791 381.473 994.521 410.085L994.646 676.652L994.158 677.233C990.361 677.991 849.184 600.442 832.241 591.503Z"/>
+        <path fill="var(--text)" d="M1022.58 244.459C1081.36 244.984 1127.14 268.157 1163.84 313.61L1152.4 321.618C1149.51 318.087 1146.51 314.654 1143.4 311.324C1112 277.747 1072.5 260.477 1026.83 258.931C971.249 258.903 931.308 280.086 895.813 321.932L884.436 313.215C920.071 268.24 965.663 246.624 1022.58 244.459Z"/>
+      </svg>
+      <div class="topbar-name">DOCENT<span>-IA</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill">
+        <div class="status-dot" id="conn-dot"></div>
+        <span id="sync-status">CNEB v3</span>
+      </div>
+      <button class="btn-icon" id="btn-nav-perfil" aria-label="Perfil">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       VIEW: DASHBOARD
+  ═══════════════════════════════════════ -->
+  <div id="view-dashboard" class="view active">
+    <div class="scroll-area flex-1" style="flex:1; min-height:0;">
+      <div class="px-4" style="padding-top:0; padding-bottom:80px;">
+
+        <!-- AI Greeting -->
+        <div class="ai-greeting mb-4">
+          <div class="ai-greeting-label">
+            <span class="ai-dot"></span>
+            Asistente activo
+          </div>
+          <div class="ai-greeting-text" id="dynamic-greeting">
+            Buenas tardes, profe. <span>¿Qué planificamos hoy?</span>
+          </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row mb-4">
+          <div class="stat-card">
+            <div class="stat-value terra" id="dash-stat-sessions">—</div>
+            <div class="stat-label">Sesiones</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="dash-stat-units">—</div>
+            <div class="stat-label">Unidades</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="dash-stat-docs">—</div>
+            <div class="stat-label">Docs</div>
+          </div>
+        </div>
+
+        <!-- PIPELINE SECTION -->
+        <div class="section-header" style="padding-left:0; padding-right:0;">
+          <div class="section-label">Cascada de planificación</div>
+          <div class="section-title">Tu flujo <em>pedagógico</em></div>
+        </div>
+
+        <!-- Step 1: Perfil Docente -->
+        <div class="pipeline-step step-active" data-view="perfil" id="step-perfil">
+          <div class="step-num-wrap">01</div>
+          <div class="step-body">
+            <div class="step-label">Identidad</div>
+            <div class="step-name">Perfil Docente</div>
+            <div class="step-desc">Registra tu identidad profesional: nivel, área, modalidad, UGEL y región.</div>
+            <div style="margin-top:8px">
+              <span class="tag-badge active" id="tag-perfil">En progreso</span>
+            </div>
+          </div>
+          <div class="step-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+        </div>
+
+        <div class="pipeline-connector" id="conn-1-2"></div>
+
+        <!-- Step 2: Diagnóstico Situacional -->
+        <div class="pipeline-step" data-view="diagnostico" id="step-diagnostico">
+          <div class="step-num-wrap">02</div>
+          <div class="step-body">
+            <div class="step-label">Análisis</div>
+            <div class="step-name">Diagnóstico Situacional</div>
+            <div class="step-desc">Caracteriza a tus estudiantes, el aula, recursos disponibles y la problemática educativa central.</div>
+            <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+              <span class="tag-badge" id="tag-diagnostico">Pendiente</span>
+              <span class="tag-badge" style="border-color:var(--gold);color:var(--gold);">4 pasos</span>
+            </div>
+          </div>
+          <div class="step-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+        </div>
+
+        <div class="pipeline-connector" id="conn-2-3"></div>
+
+        <!-- Step 3: Planificación Anual -->
+        <div class="pipeline-step" data-view="planificacion" id="step-anual">
+          <div class="step-num-wrap">03</div>
+          <div class="step-body">
+            <div class="step-label">Programación</div>
+            <div class="step-name">Planificación Anual</div>
+            <div class="step-desc">Organiza tus unidades y competencias por bimestre o trimestre.</div>
+            <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+              <span class="tag-badge" id="tag-anual">Pendiente</span>
+            </div>
+          </div>
+          <div class="step-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+        </div>
+
+        <div class="pipeline-connector" id="conn-3-4"></div>
+
+        <!-- Step 4: Unidades Didácticas -->
+        <div class="pipeline-step" data-view="unidad" id="step-unidad">
+          <div class="step-num-wrap">04</div>
+          <div class="step-body">
+            <div class="step-label">Diseño didáctico</div>
+            <div class="step-name">Unidades Didácticas</div>
+            <div class="step-desc">Genera unidades alineadas al CNEB con competencias, capacidades y evidencias.</div>
+            <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+              <span class="tag-badge" id="tag-unidad">Pendiente</span>
+            </div>
+          </div>
+          <div class="step-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+        </div>
+
+        <div class="pipeline-connector" id="conn-4-5"></div>
+
+        <!-- Step 5: Sesiones de Aprendizaje -->
+        <div class="pipeline-step" data-view="sesion" id="step-sesion">
+          <div class="step-num-wrap">05</div>
+          <div class="step-body">
+            <div class="step-label">Ejecución</div>
+            <div class="step-name">Sesiones de Aprendizaje</div>
+            <div class="step-desc">Diseña sesiones con momentos pedagógicos, recursos y estrategias.</div>
+            <div style="margin-top:8px;">
+              <span class="tag-badge" id="tag-sesion">Pendiente</span>
+            </div>
+          </div>
+          <div class="step-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+        </div>
+
+        <div class="pipeline-connector" id="conn-5-6"></div>
+
+        <!-- Step 6: Evaluación / Rúbricas -->
+        <div class="pipeline-step" data-view="rubrica" id="step-rubrica">
+          <div class="step-num-wrap">06</div>
+          <div class="step-body">
+            <div class="step-label">Evaluación</div>
+            <div class="step-name">Rúbricas &amp; Evaluación</div>
+            <div class="step-desc">Construye instrumentos de evaluación por criterios y niveles de desempeño.</div>
+            <div style="margin-top:8px;">
+              <span class="tag-badge" id="tag-rubrica">Pendiente</span>
+            </div>
+          </div>
+          <div class="step-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+        </div>
+
+        <div class="pipeline-connector" id="conn-6-7"></div>
+
+        <!-- Step 7: Repositorio -->
+        <div class="pipeline-step" data-view="materiales" id="step-materiales">
+          <div class="step-num-wrap">07</div>
+          <div class="step-body">
+            <div class="step-label">Repositorio</div>
+            <div class="step-name">Materiales Generados</div>
+            <div class="step-desc">Historial de todos tus documentos pedagógicos listos para descargar.</div>
+            <div style="margin-top:8px;">
+              <span class="tag-badge" id="tag-materiales">—</span>
+            </div>
+          </div>
+          <div class="step-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="divider-label" style="margin:20px 0 14px;">
+          <span>Herramientas de soporte</span>
+        </div>
+
+        <!-- Support Tools Grid -->
+        <div class="tools-grid mb-5">
+          <div class="tool-card card-press" data-view="metodologia">
+            <div class="tool-icon-wrap icon-sage">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </div>
+            <div class="tool-name">Metodologías</div>
+            <div class="tool-desc">ABP, Flipped, Design Thinking y más</div>
+          </div>
+
+          <div class="tool-card card-press" data-view="convivencia">
+            <div class="tool-icon-wrap icon-gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="tool-name">Convivencia</div>
+            <div class="tool-desc">Protocolos y bienestar escolar MINEDU</div>
+          </div>
+
+          <div class="tool-card card-press" data-view="gestion">
+            <div class="tool-icon-wrap icon-slate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+            </div>
+            <div class="tool-name">Gestión Institucional</div>
+            <div class="tool-desc">PAT, PEI, RI y documentos oficiales</div>
+          </div>
+
+          <div class="tool-card card-press" data-view="materiales">
+            <div class="tool-icon-wrap icon-terracotta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div class="tool-name">Mis Documentos</div>
+            <div class="tool-desc">Historial y descargas en Word / PDF</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /view-dashboard -->
+
+
+  <!-- ═══════════════════════════════════════
+       VIEW: PERFIL / DIAGNÓSTICO
+  ═══════════════════════════════════════ -->
+  <div id="view-perfil" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-perfil">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label">Paso 01 — Inicio</div>
+        <div class="view-header-title">Perfil Docente</div>
+      </div>
+      <span class="tag-badge active">Diagnóstico</span>
+    </div>
+    <div class="scroll-area flex-1" style="flex:1; min-height:0; padding:0 16px 80px;">
+      <div class="profile-badge" id="profile-badge">
+        <div class="profile-avatar" id="profile-avatar">D</div>
+        <div style="flex:1; min-width:0;">
+          <div class="profile-name" id="profile-name">Docente</div>
+          <div class="profile-role" id="profile-role">Perfil incompleto</div>
+          <div id="profile-director-row" style="display:none; font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:0.08em; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            Dir: <span id="profile-director-name"></span>
+          </div>
         </div>
       </div>
 
-      <!-- ========================================== -->
-      <!-- VIEW: DASHBOARD (DEFAULT ENTRY)            -->
-      <!-- ========================================== -->
-      <div id="dashboard-view" class="view-container active">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="school"></span>
-          </div>
-          <h1 id="dynamic-greeting">Gestión Curricular</h1>
-          <p class="subtitle">Bienvenido a su centro de comando profesional. Optimice su práctica pedagógica con asistencia inteligente.</p>
-        </header>
+      <form id="profile-form" novalidate>
+        <div class="form-group">
+          <label class="form-label">Nombre completo <span class="required">*</span></label>
+          <input class="form-input" type="text" name="nombre" placeholder="Ej. María Huanca Torres" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Institución Educativa <span class="required">*</span></label>
+          <input class="form-input" type="text" name="institucion" placeholder="Nombre de la IE" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Director(a) <span class="required">*</span></label>
+          <input class="form-input" type="text" name="director" placeholder="Nombre completo del director(a)" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">UGEL <span class="required">*</span></label>
+          <input class="form-input" type="text" name="ugel" placeholder="Ej. UGEL Cajamarca" required>
+        </div>
 
-        <!-- Quick Stats -->
-        <div class="quick-stats">
-          <div class="stat-pill">
-            <span class="stat-dot green"></span>
-            <span id="dash-stat-profile">Perfil activo</span>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Modalidad <span class="required">*</span></label>
+            <select class="form-select" name="modalidad" required>
+              <option value="">—</option>
+              <option>EBR</option><option>EBA</option><option>EBE</option>
+            </select>
           </div>
-          <div class="stat-pill">
-            <span class="stat-dot yellow"></span>
-            <span id="dash-stat-sessions">0 sesiones</span>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Nivel <span class="required">*</span></label>
+            <select class="form-select" name="nivel" required>
+              <option value="">—</option>
+              <option>Inicial</option><option>Primaria</option><option>Secundaria</option>
+            </select>
           </div>
         </div>
 
-        <!-- Dashboard Grid -->
-        <div class="dashboard-grid">
-          <div class="dash-card" data-accent="indigo" data-view="sesion" id="dash-sesion">
-            <div class="dash-icon indigo"><span class="professional-icon" data-icon="book"></span></div>
-            <span class="dash-label">Planificación de Sesión</span>
-            <span class="dash-desc">Diseño estructurado de momentos pedagógicos</span>
+        <div class="form-group" style="margin-top:12px;">
+          <label class="form-label">Área curricular <span class="required">*</span></label>
+          <select class="form-select" name="area" required>
+            <option value="">Seleccionar área</option>
+            <option>Comunicación</option><option>Matemática</option>
+            <option>Ciencia y Tecnología</option><option>Personal Social</option>
+            <option>Arte y Cultura</option><option>Educación Física</option>
+            <option>Educación para el Trabajo</option><option>Inglés</option>
+            <option>Religión</option><option>Tutoría</option>
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Grado <span class="required">*</span></label>
+            <select class="form-select" name="grado" required>
+              <option value="">—</option>
+              <option>1° grado</option><option>2° grado</option><option>3° grado</option>
+              <option>4° grado</option><option>5° grado</option><option>6° grado</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Sección</label>
+            <input class="form-input" type="text" name="seccion" placeholder='Ej. "A"'>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Año lectivo</label>
+          <input class="form-input" type="text" name="anio_lectivo" value="2026">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Región <span class="required">*</span></label>
+            <input class="form-input" type="text" name="region" placeholder="Cajamarca" required>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Provincia</label>
+            <input class="form-input" type="text" name="provincia" placeholder="Cajamarca">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:12px;">
+          <label class="form-label">Distrito</label>
+          <input class="form-input" type="text" name="distrito" placeholder="Cajamarca">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contexto específico</label>
+          <textarea class="form-textarea" name="lugar_exacto" placeholder="Describe el contexto de tu IE (rural, urbano, multigrado, bilingüe…)" style="min-height:70px;"></textarea>
+        </div>
+
+        <button type="button" class="btn btn-primary" id="btn-save-profile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Guardar perfil
+        </button>
+      </form>
+    </div>
+  </div><!-- /view-perfil -->
+
+
+  <!-- ═══════════════════════════════════════
+       VIEW: DIAGNÓSTICO SITUACIONAL
+  ═══════════════════════════════════════ -->
+  <div id="view-diagnostico" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-diagnostico">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label">Paso 02 — Análisis</div>
+        <div class="view-header-title">Diagnóstico Situacional</div>
+      </div>
+    </div>
+
+    <!-- Sub-step progress bar -->
+    <div style="padding:0 16px 14px; flex-shrink:0;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <span style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-muted);" id="diag-step-label">Paso 1 de 4</span>
+        <span style="font-family:'DM Mono',monospace; font-size:9px; color:var(--terracotta);" id="diag-step-name">Contexto del Aula</span>
+      </div>
+      <div style="display:flex; gap:5px;">
+        <div class="diag-indicator active" id="diag-ind-1"></div>
+        <div class="diag-indicator" id="diag-ind-2"></div>
+        <div class="diag-indicator" id="diag-ind-3"></div>
+        <div class="diag-indicator" id="diag-ind-4"></div>
+      </div>
+    </div>
+
+    <div class="scroll-area" style="flex:1; min-height:0; padding:0 16px 80px;">
+
+      <!-- ── SUB-STEP 1: Contexto del Aula ── -->
+      <div id="diag-step-1" class="diag-step-panel">
+        <div class="diag-step-intro mb-4">
+          <div class="diag-step-icon" style="background:var(--terracotta-dim);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M12 12v6M6 12v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-5"/></svg>
+          </div>
+          <div>
+            <div class="diag-step-title">Contexto del Aula</div>
+            <div class="diag-step-subtitle">Características físicas y organizativas de tu espacio educativo.</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Número de estudiantes <span class="required">*</span></label>
+          <input class="form-input" type="number" id="diag-num-estudiantes" placeholder="Ej. 28" min="1" max="60" required>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Mujeres</label>
+            <input class="form-input" type="number" id="diag-num-mujeres" placeholder="Ej. 14" min="0">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Varones</label>
+            <input class="form-input" type="number" id="diag-num-varones" placeholder="Ej. 14" min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de aula</label>
+          <select class="form-select" id="diag-tipo-aula">
+            <option value="">Seleccionar</option>
+            <option>Aula regular</option>
+            <option>Aula multigrado (2 grados)</option>
+            <option>Aula multigrado (3+ grados)</option>
+            <option>Aula virtual / híbrida</option>
+            <option>Escuela unidocente</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estudiantes con NEE (Necesidades Educativas Especiales)</label>
+          <select class="form-select" id="diag-nee">
+            <option value="ninguno">Ninguno</option>
+            <option value="1-2">1 – 2 estudiantes</option>
+            <option value="3-5">3 – 5 estudiantes</option>
+            <option value="mas-5">Más de 5</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de NEE presentes</label>
+          <div class="diag-check-grid">
+            <label class="diag-check"><input type="checkbox" value="discapacidad-intelectual"> Discapacidad intelectual</label>
+            <label class="diag-check"><input type="checkbox" value="discapacidad-visual"> Discapacidad visual</label>
+            <label class="diag-check"><input type="checkbox" value="discapacidad-auditiva"> Discapacidad auditiva</label>
+            <label class="diag-check"><input type="checkbox" value="tea"> TEA / Autismo</label>
+            <label class="diag-check"><input type="checkbox" value="tdah"> TDAH</label>
+            <label class="diag-check"><input type="checkbox" value="dificultades-aprendizaje"> Dificultades de aprendizaje</label>
+            <label class="diag-check"><input type="checkbox" value="talento-superdotacion"> Talento / Superdotación</label>
+            <label class="diag-check"><input type="checkbox" value="bilingue"> Estudiantes bilingües EIB</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Condición de infraestructura</label>
+          <select class="form-select" id="diag-infraestructura">
+            <option value="">Seleccionar</option>
+            <option>Adecuada (aula equipada, ventilada, mobiliario completo)</option>
+            <option>Básica (aula funcional, sin equipamiento tecnológico)</option>
+            <option>Limitada (infraestructura deteriorada o incompleta)</option>
+            <option>Precaria (aula provisional, rural extrema)</option>
+          </select>
+        </div>
+      </div><!-- /diag-step-1 -->
+
+      <!-- ── SUB-STEP 2: Diagnóstico de Aprendizajes ── -->
+      <div id="diag-step-2" class="diag-step-panel" style="display:none;">
+        <div class="diag-step-intro mb-4">
+          <div class="diag-step-icon" style="background:var(--gold-dim);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          <div>
+            <div class="diag-step-title">Diagnóstico de Aprendizajes</div>
+            <div class="diag-step-subtitle">Niveles de logro, fortalezas y dificultades observadas en tus estudiantes.</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nivel de logro predominante del grupo <span class="required">*</span></label>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;" id="diag-nivel-logro">
+            <label class="diag-radio-card">
+              <input type="radio" name="nivel_logro" value="inicio">
+              <div class="diag-radio-inner">
+                <div class="diag-radio-badge" style="background:rgba(224,82,82,0.15); color:#E05252;">En Inicio</div>
+                <div class="diag-radio-desc">La mayoría no demuestra los aprendizajes esperados del grado anterior.</div>
+              </div>
+            </label>
+            <label class="diag-radio-card">
+              <input type="radio" name="nivel_logro" value="proceso">
+              <div class="diag-radio-inner">
+                <div class="diag-radio-badge" style="background:var(--gold-dim); color:var(--gold);">En Proceso</div>
+                <div class="diag-radio-desc">Avance parcial; requieren apoyo para alcanzar los aprendizajes esperados.</div>
+              </div>
+            </label>
+            <label class="diag-radio-card">
+              <input type="radio" name="nivel_logro" value="esperado" checked>
+              <div class="diag-radio-inner">
+                <div class="diag-radio-badge" style="background:var(--sage-dim); color:var(--sage);">Logro Esperado</div>
+                <div class="diag-radio-desc">Demuestran lo esperado en tiempo y forma según el CNEB.</div>
+              </div>
+            </label>
+            <label class="diag-radio-card">
+              <input type="radio" name="nivel_logro" value="destacado">
+              <div class="diag-radio-inner">
+                <div class="diag-radio-badge" style="background:var(--terracotta-dim); color:var(--terracotta);">Logro Destacado</div>
+                <div class="diag-radio-desc">Superan los aprendizajes esperados y muestran habilidades sobresalientes.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- ── FORTALEZAS (interactivo) ── -->
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--sage-dim); color:var(--sage);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Fortalezas del grupo</div>
+              <div class="diag-block-subtitle">¿En qué destacan tus estudiantes?</div>
+            </div>
           </div>
 
-          <div class="dash-card" data-accent="teal" data-view="unidad" id="dash-unidad">
-            <div class="dash-icon teal"><span class="professional-icon" data-icon="folder"></span></div>
-            <span class="dash-label">Unidad Didáctica</span>
-            <span class="dash-desc">Organización trimestral o bimestral de aprendizajes</span>
+          <div class="diag-question">
+            <div class="diag-q-text">¿En qué tipo de actividades participan con más entusiasmo y disposición?</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="fort_actividades" value="trabajo-grupal"> Trabajo en equipo</label>
+              <label class="diag-check"><input type="checkbox" name="fort_actividades" value="actividades-artisticas"> Actividades artísticas</label>
+              <label class="diag-check"><input type="checkbox" name="fort_actividades" value="juegos-didacticos"> Juegos didácticos</label>
+              <label class="diag-check"><input type="checkbox" name="fort_actividades" value="lectura-voz-alta"> Lectura en voz alta</label>
+              <label class="diag-check"><input type="checkbox" name="fort_actividades" value="debates-dialogo"> Debates y diálogo</label>
+              <label class="diag-check"><input type="checkbox" name="fort_actividades" value="experimentos"> Experimentos y ciencia</label>
+              <label class="diag-check"><input type="checkbox" name="fort_actividades" value="actividades-motrices"> Educación física</label>
+              <label class="diag-check"><input type="checkbox" name="fort_actividades" value="tecnologia"> Uso de tecnología</label>
+            </div>
           </div>
 
-          <div class="dash-card" data-accent="warm" data-view="rubrica" id="dash-rubrica">
-            <div class="dash-icon warm"><span class="professional-icon" data-icon="clipboard"></span></div>
-            <span class="dash-label">Instrumentos de Evaluación</span>
-            <span class="dash-desc">Construcción de rúbricas y listas de cotejo</span>
+          <div class="diag-question">
+            <div class="diag-q-text">¿Qué habilidades o valores sobresalen en el grupo?</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="fort_habilidades" value="expresion-oral"> Expresión oral fluida</label>
+              <label class="diag-check"><input type="checkbox" name="fort_habilidades" value="creatividad"> Creatividad e imaginación</label>
+              <label class="diag-check"><input type="checkbox" name="fort_habilidades" value="liderazgo"> Liderazgo positivo</label>
+              <label class="diag-check"><input type="checkbox" name="fort_habilidades" value="solidaridad"> Solidaridad y empatía</label>
+              <label class="diag-check"><input type="checkbox" name="fort_habilidades" value="perseverancia"> Perseverancia ante retos</label>
+              <label class="diag-check"><input type="checkbox" name="fort_habilidades" value="curiosidad"> Curiosidad intelectual</label>
+              <label class="diag-check"><input type="checkbox" name="fort_habilidades" value="habilidades-numericas"> Habilidades numéricas</label>
+              <label class="diag-check"><input type="checkbox" name="fort_habilidades" value="respeto-normas"> Respeto a normas</label>
+            </div>
           </div>
 
-          <div class="dash-card" data-accent="rose" data-view="planificacion" id="dash-planificacion">
-            <div class="dash-icon rose"><span class="professional-icon" data-icon="calendar"></span></div>
-            <span class="dash-label">Centro de Planificación</span>
-            <span class="dash-desc">Gestión integral de la programación anual</span>
+          <div class="diag-question">
+            <div class="diag-q-text">¿En qué área curricular el grupo muestra mejor desempeño?</div>
+            <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="fort_area_fuerte" value="comunicacion"> <div class="diag-radio-inner"><span>Comunicación</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="fort_area_fuerte" value="matematica"> <div class="diag-radio-inner"><span>Matemática</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="fort_area_fuerte" value="personal-social"> <div class="diag-radio-inner"><span>Personal Social</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="fort_area_fuerte" value="ciencia"> <div class="diag-radio-inner"><span>Ciencia y Tecnología</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="fort_area_fuerte" value="arte"> <div class="diag-radio-inner"><span>Arte y Cultura</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="fort_area_fuerte" value="educacion-fisica"> <div class="diag-radio-inner"><span>Educación Física</span></div></label>
+            </div>
           </div>
 
-          <div class="dash-card" data-accent="green" data-view="convivencia" id="dash-convivencia">
-            <div class="dash-icon green"><span class="professional-icon" data-icon="users"></span></div>
-            <span class="dash-label">Gestión de la Convivencia</span>
-            <span class="dash-desc">Protocolos de atención y clima escolar</span>
+          <div class="diag-question">
+            <div class="diag-q-text">¿Hay alguna fortaleza adicional que quieras destacar?</div>
+            <textarea class="form-textarea" id="diag-fortalezas-extra" placeholder="Opcional: describe alguna característica especial del grupo…" style="min-height:56px;"></textarea>
+          </div>
+        </div>
+
+        <!-- ── DIFICULTADES (interactivo) ── -->
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:rgba(224,82,82,0.12); color:#E05252;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Dificultades de aprendizaje</div>
+              <div class="diag-block-subtitle">¿Qué obstáculos enfrenta el grupo con mayor frecuencia?</div>
+            </div>
           </div>
 
-          <div class="dash-card" data-accent="purple" data-view="metodologia" id="dash-metodologia">
-            <div class="dash-icon purple"><span class="professional-icon" data-icon="brain"></span></div>
-            <span class="dash-label">Metodologías Activas</span>
-            <span class="dash-desc">Innovación pedagógica y proyectos ABP</span>
+          <div class="diag-question">
+            <div class="diag-q-text">¿Qué tipo de tareas o actividades les resultan más difíciles?</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="dif_tareas" value="comprension-lectora"> Comprender lo que leen</label>
+              <label class="diag-check"><input type="checkbox" name="dif_tareas" value="produccion-textos"> Producir textos escritos</label>
+              <label class="diag-check"><input type="checkbox" name="dif_tareas" value="operaciones-mat"> Operaciones matemáticas</label>
+              <label class="diag-check"><input type="checkbox" name="dif_tareas" value="problemas-mat"> Resolución de problemas</label>
+              <label class="diag-check"><input type="checkbox" name="dif_tareas" value="expresion-oral"> Expresarse oralmente</label>
+              <label class="diag-check"><input type="checkbox" name="dif_tareas" value="seguir-instrucciones"> Seguir instrucciones</label>
+              <label class="diag-check"><input type="checkbox" name="dif_tareas" value="trabajo-autonomo"> Trabajo autónomo</label>
+              <label class="diag-check"><input type="checkbox" name="dif_tareas" value="concentracion"> Mantener concentración</label>
+            </div>
           </div>
 
-          <div class="dash-card" data-accent="amber" data-view="gestion" id="dash-gestion">
-            <div class="dash-icon amber"><span class="professional-icon" data-icon="building"></span></div>
-            <span class="dash-label">Gestión Institucional</span>
-            <span class="dash-desc">Instrumentos de Gestión: PEI, PCI, PAT y RI</span>
+          <div class="diag-question">
+            <div class="diag-q-text">¿En qué momento de la sesión pierden mayor atención o motivación?</div>
+            <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="dif_momento" value="inicio"> <div class="diag-radio-inner"><span>En el inicio, al presentar la actividad</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="dif_momento" value="desarrollo-individual"> <div class="diag-radio-inner"><span>Durante el trabajo individual</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="dif_momento" value="desarrollo-grupal"> <div class="diag-radio-inner"><span>Durante el trabajo grupal</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="dif_momento" value="cierre"> <div class="diag-radio-inner"><span>En el cierre o metacognición</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="dif_momento" value="todo"> <div class="diag-radio-inner"><span>A lo largo de toda la sesión</span></div></label>
+            </div>
           </div>
 
-          <div class="dash-card" data-accent="emerald" data-view="diagnostic" id="dash-diagnostic">
-            <div class="dash-icon emerald"><span class="professional-icon" data-icon="search"></span></div>
-            <span class="dash-label">Diagnóstico Situacional</span>
-            <span class="dash-desc">Análisis guiado del entorno (CGE y PESTEL)</span>
+          <div class="diag-question">
+            <div class="diag-q-text">¿Con qué frecuencia observas estas dificultades en el aula?</div>
+            <div class="diag-freq-scale" id="diag-freq-scale">
+              <button type="button" class="diag-freq-btn" data-val="1">
+                <span class="diag-freq-emoji">🌱</span>
+                <span>Rara vez</span>
+              </button>
+              <button type="button" class="diag-freq-btn" data-val="2">
+                <span class="diag-freq-emoji">⚡</span>
+                <span>A veces</span>
+              </button>
+              <button type="button" class="diag-freq-btn active" data-val="3">
+                <span class="diag-freq-emoji">🔁</span>
+                <span>Frecuente</span>
+              </button>
+              <button type="button" class="diag-freq-btn" data-val="4">
+                <span class="diag-freq-emoji">🚨</span>
+                <span>Siempre</span>
+              </button>
+            </div>
+            <input type="hidden" id="diag-frecuencia" value="3">
           </div>
 
-          <div class="dash-card full-width" data-accent="sky" data-view="perfil" id="dash-perfil">
-            <div style="display:flex; align-items:center; gap:0.6rem;">
-              <div class="dash-icon sky"><span class="professional-icon" data-icon="user"></span></div>
-              <div>
-                <span class="dash-label">Identidad Profesional</span>
-                <span class="dash-desc" style="display:block;">Configuración de nivel, área y contexto educativo</span>
+          <div class="diag-question">
+            <div class="diag-q-text">¿A qué factores atribuyes principalmente estas dificultades?</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="dif_factores" value="falta-habito-lector"> Falta de hábito lector</label>
+              <label class="diag-check"><input type="checkbox" name="dif_factores" value="poco-acompanamiento"> Poco acompañamiento familiar</label>
+              <label class="diag-check"><input type="checkbox" name="dif_factores" value="vacíos-anteriores"> Vacíos de años anteriores</label>
+              <label class="diag-check"><input type="checkbox" name="dif_factores" value="ausentismo"> Ausentismo frecuente</label>
+              <label class="diag-check"><input type="checkbox" name="dif_factores" value="barreras-idioma"> Barreras idiomáticas (EIB)</label>
+              <label class="diag-check"><input type="checkbox" name="dif_factores" value="condiciones-casa"> Condiciones del hogar</label>
+              <label class="diag-check"><input type="checkbox" name="dif_factores" value="ritmos-distintos"> Ritmos distintos de aprendizaje</label>
+              <label class="diag-check"><input type="checkbox" name="dif_factores" value="metodologia-docente"> Metodología poco diversificada</label>
+            </div>
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">¿En qué área el grupo muestra el menor desempeño?</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="areas_bajas" value="comprension-lectora"> Comprensión lectora</label>
+              <label class="diag-check"><input type="checkbox" name="areas_bajas" value="produccion-escrita"> Producción escrita</label>
+              <label class="diag-check"><input type="checkbox" name="areas_bajas" value="razonamiento-mat"> Razonamiento matemático</label>
+              <label class="diag-check"><input type="checkbox" name="areas_bajas" value="comunicacion-oral"> Comunicación oral</label>
+              <label class="diag-check"><input type="checkbox" name="areas_bajas" value="ciencias"> Ciencia y Tecnología</label>
+              <label class="diag-check"><input type="checkbox" name="areas_bajas" value="convivencia"> Convivencia / ciudadanía</label>
+            </div>
+          </div>
+        </div>
+      </div><!-- /diag-step-2 -->
+
+      <!-- ── SUB-STEP 3: Recursos y Condiciones ── -->
+      <div id="diag-step-3" class="diag-step-panel" style="display:none;">
+        <div class="diag-step-intro mb-4">
+          <div class="diag-step-icon" style="background:var(--sage-dim);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--sage)" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </div>
+          <div>
+            <div class="diag-step-title">Recursos y Condiciones</div>
+            <div class="diag-step-subtitle">Disponibilidad de materiales, tecnología y factores del entorno.</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Materiales educativos disponibles</label>
+          <div class="diag-check-grid">
+            <label class="diag-check"><input type="checkbox" value="libros-minedu" checked> Libros / textos MINEDU</label>
+            <label class="diag-check"><input type="checkbox" value="cuadernos-trabajo" checked> Cuadernos de trabajo</label>
+            <label class="diag-check"><input type="checkbox" value="biblioteca"> Biblioteca de aula</label>
+            <label class="diag-check"><input type="checkbox" value="material-concreto"> Material concreto (Base 10, regletas…)</label>
+            <label class="diag-check"><input type="checkbox" value="juegos-educativos"> Juegos educativos</label>
+            <label class="diag-check"><input type="checkbox" value="material-arte"> Material de arte y manualidades</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Acceso a tecnología en el aula</label>
+          <div class="diag-check-grid">
+            <label class="diag-check"><input type="checkbox" value="laptop-docente"> Laptop del docente</label>
+            <label class="diag-check"><input type="checkbox" value="tablets-estudiantes"> Tablets / XO para estudiantes</label>
+            <label class="diag-check"><input type="checkbox" value="proyector"> Proyector / TV</label>
+            <label class="diag-check"><input type="checkbox" value="internet"> Acceso a internet</label>
+            <label class="diag-check"><input type="checkbox" value="sin-tecnologia"> Sin acceso a tecnología</label>
+          </div>
+        </div>
+        <!-- ── CONTEXTO FAMILIAR Y SOCIAL (interactivo) ── -->
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--gold-dim); color:var(--gold);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Contexto familiar y social</div>
+              <div class="diag-block-subtitle">¿Qué factores del entorno influyen en el aprendizaje?</div>
+            </div>
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">¿Cuál es la principal actividad económica de las familias de tus estudiantes?</div>
+            <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="ctx_economia" value="agricultura"> <div class="diag-radio-inner"><span>🌾 Agricultura / ganadería</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="ctx_economia" value="comercio"> <div class="diag-radio-inner"><span>🏪 Comercio informal / formal</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="ctx_economia" value="mineria"> <div class="diag-radio-inner"><span>⛏️ Minería / construcción</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="ctx_economia" value="servicios"> <div class="diag-radio-inner"><span>💼 Servicios / trabajo dependiente</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="ctx_economia" value="mixta"> <div class="diag-radio-inner"><span>🔀 Actividad mixta / variada</span></div></label>
+            </div>
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">¿Las familias acompañan las tareas y actividades escolares en casa?</div>
+            <div class="diag-scale-row" id="diag-acompanamiento-scale">
+              <button type="button" class="diag-scale-btn" data-val="nunca">
+                <div class="diag-scale-bar" style="height:20%"></div>
+                <span>Nunca</span>
+              </button>
+              <button type="button" class="diag-scale-btn" data-val="rara-vez">
+                <div class="diag-scale-bar" style="height:40%"></div>
+                <span>Rara vez</span>
+              </button>
+              <button type="button" class="diag-scale-btn active" data-val="a-veces">
+                <div class="diag-scale-bar" style="height:60%"></div>
+                <span>A veces</span>
+              </button>
+              <button type="button" class="diag-scale-btn" data-val="frecuente">
+                <div class="diag-scale-bar" style="height:80%"></div>
+                <span>Frecuente</span>
+              </button>
+              <button type="button" class="diag-scale-btn" data-val="siempre">
+                <div class="diag-scale-bar" style="height:100%"></div>
+                <span>Siempre</span>
+              </button>
+            </div>
+            <input type="hidden" id="diag-acompanamiento" value="a-veces">
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">¿Qué factores de vulnerabilidad están presentes en el entorno familiar?</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="ctx_vulnerabilidad" value="pobreza-extrema"> Pobreza extrema</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_vulnerabilidad" value="trabajo-infantil"> Trabajo infantil</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_vulnerabilidad" value="violencia-familiar"> Violencia familiar</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_vulnerabilidad" value="migracion"> Migración frecuente</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_vulnerabilidad" value="desnutricion"> Desnutrición / anemia</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_vulnerabilidad" value="padres-analfabetos"> Padres con bajo nivel educativo</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_vulnerabilidad" value="hogares-monoparentales"> Hogares monoparentales</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_vulnerabilidad" value="ninguno"> Ninguno identificado</label>
+            </div>
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">¿Los estudiantes cuentan con servicios básicos en el hogar?</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="ctx_servicios" value="agua-potable" checked> Agua potable</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_servicios" value="electricidad" checked> Electricidad</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_servicios" value="desague"> Desagüe / saneamiento</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_servicios" value="internet-hogar"> Internet en casa</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_servicios" value="celular"> Celular / smartphone</label>
+              <label class="diag-check"><input type="checkbox" name="ctx_servicios" value="libros-hogar"> Libros en el hogar</label>
+            </div>
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">¿Qué proporción de familias asiste a las reuniones de tutoría o APAFA?</div>
+            <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="ctx_asistencia" value="menos-30"> <div class="diag-radio-inner"><span>Menos del 30% — asistencia muy baja</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="ctx_asistencia" value="30-60"> <div class="diag-radio-inner"><span>Entre 30% y 60% — asistencia regular</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="ctx_asistencia" value="mas-60" checked> <div class="diag-radio-inner"><span>Más del 60% — buena asistencia</span></div></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">¿Cuenta con apoyo del AIP / Soporte Pedagógico?</label>
+          <select class="form-select" id="diag-apoyo-aip">
+            <option value="">Seleccionar</option>
+            <option>Sí, con coordinación regular</option>
+            <option>Sí, pero esporádicamente</option>
+            <option>No cuenta con AIP</option>
+            <option>No aplica (escuela unidocente)</option>
+          </select>
+        </div>
+      </div><!-- /diag-step-3 -->
+
+      <!-- ── SUB-STEP 4: Problemática y Compromisos ── -->
+      <div id="diag-step-4" class="diag-step-panel" style="display:none;">
+        <div class="diag-step-intro mb-4">
+          <div class="diag-step-icon" style="background:rgba(58,74,92,0.25);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7B9AC4" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div>
+            <div class="diag-step-title">Problemática e Hipótesis de Acción</div>
+            <div class="diag-step-subtitle">Identificación del problema central y compromisos pedagógicos.</div>
+          </div>
+        </div>
+
+        <!-- ── PROBLEMÁTICA (interactivo) ── -->
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:rgba(58,74,92,0.3); color:#7B9AC4;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Problemática educativa central</div>
+              <div class="diag-block-subtitle">¿Cuál es el problema de aprendizaje que más preocupa al grupo?</div>
+            </div>
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">¿Cuál es el problema de aprendizaje o convivencia más urgente que has identificado?</div>
+            <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="prob_tipo" value="comprension-lectora"> <div class="diag-radio-inner"><span>📖 Bajo nivel de comprensión lectora</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="prob_tipo" value="produccion-escrita"> <div class="diag-radio-inner"><span>✍️ Escasa producción de textos escritos</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="prob_tipo" value="razonamiento-mat"> <div class="diag-radio-inner"><span>🔢 Dificultades en razonamiento matemático</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="prob_tipo" value="comunicacion-oral"> <div class="diag-radio-inner"><span>🗣️ Dificultades en comunicación oral</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="prob_tipo" value="convivencia"> <div class="diag-radio-inner"><span>🤝 Problemas de convivencia escolar</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="prob_tipo" value="aprendizaje-integral"> <div class="diag-radio-inner"><span>🎯 Bajo desempeño general en varias áreas</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="prob_tipo" value="otro"> <div class="diag-radio-inner"><span>💬 Otro problema (lo describo abajo)</span></div></label>
+            </div>
+          </div>
+
+          <div class="diag-question" id="prob-otro-container" style="display:none;">
+            <div class="diag-q-text">Describe el problema identificado:</div>
+            <textarea class="form-textarea" id="diag-problema-otro" placeholder="Describe brevemente el problema de aprendizaje o convivencia…" style="min-height:70px;"></textarea>
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">¿Qué porcentaje aproximado de tus estudiantes presenta este problema?</div>
+            <div class="diag-pct-row">
+              <button type="button" class="diag-pct-btn" data-val="menos25">Menos del 25%</button>
+              <button type="button" class="diag-pct-btn" data-val="25-50">25 – 50%</button>
+              <button type="button" class="diag-pct-btn active" data-val="50-75">50 – 75%</button>
+              <button type="button" class="diag-pct-btn" data-val="mas75">Más del 75%</button>
+            </div>
+            <input type="hidden" id="diag-prob-porcentaje" value="50-75">
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">¿Cómo evidenciaste este problema?</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="prob_evidencia" value="evaluacion-diagnostica" checked> Evaluación diagnóstica</label>
+              <label class="diag-check"><input type="checkbox" name="prob_evidencia" value="observacion-aula" checked> Observación de aula</label>
+              <label class="diag-check"><input type="checkbox" name="prob_evidencia" value="registro-notas"> Registro de calificaciones</label>
+              <label class="diag-check"><input type="checkbox" name="prob_evidencia" value="dialogo-estudiantes"> Diálogo con estudiantes</label>
+              <label class="diag-check"><input type="checkbox" name="prob_evidencia" value="comunicacion-familias"> Comunicación con familias</label>
+              <label class="diag-check"><input type="checkbox" name="prob_evidencia" value="informe-anterior"> Informe del año anterior</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── CAUSAS (interactivo) ── -->
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--terracotta-dim); color:var(--terracotta);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Causas identificadas</div>
+              <div class="diag-block-subtitle">¿Por qué ocurre este problema? Marca las más relevantes.</div>
+            </div>
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">Causas pedagógicas (dentro del aula)</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="causas_ped" value="estrategias-poco-diversificadas"> Estrategias poco diversificadas</label>
+              <label class="diag-check"><input type="checkbox" name="causas_ped" value="falta-diferenciacion"> Falta de atención diferenciada</label>
+              <label class="diag-check"><input type="checkbox" name="causas_ped" value="evaluacion-solo-sumativa"> Solo evaluación sumativa</label>
+              <label class="diag-check"><input type="checkbox" name="causas_ped" value="materiales-insuficientes"> Materiales insuficientes</label>
+            </div>
+          </div>
+
+          <div class="diag-question">
+            <div class="diag-q-text">Causas familiares y contextuales</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="causas_ctx" value="poco-acompanamiento"> Poco acompañamiento familiar</label>
+              <label class="diag-check"><input type="checkbox" name="causas_ctx" value="trabajo-infantil"> Trabajo o responsabilidades en casa</label>
+              <label class="diag-check"><input type="checkbox" name="causas_ctx" value="vacíos-previos"> Vacíos de años anteriores</label>
+              <label class="diag-check"><input type="checkbox" name="causas_ctx" value="ausentismo"> Inasistencia frecuente</label>
+              <label class="diag-check"><input type="checkbox" name="causas_ctx" value="barreras-idioma"> Barrera idiomática</label>
+              <label class="diag-check"><input type="checkbox" name="causas_ctx" value="condiciones-bienestar"> Problemas de salud / bienestar</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── HIPÓTESIS DE ACCIÓN (constructor guiado) ── -->
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--sage-dim); color:var(--sage);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18 L15 12 L9 6"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Hipótesis de acción pedagógica</div>
+              <div class="diag-block-subtitle">Construye tu hipótesis guiada completando los campos.</div>
+            </div>
+          </div>
+
+          <div class="diag-hyp-builder">
+            <div class="diag-hyp-prefix">Si aplico</div>
+            <select class="form-select diag-hyp-field" id="hyp-estrategia">
+              <option value="">— elige una estrategia —</option>
+              <option>lectura compartida y estrategias inferenciales</option>
+              <option>resolución de problemas con material concreto</option>
+              <option>escritura libre y talleres de producción textual</option>
+              <option>aprendizaje basado en proyectos (ABP)</option>
+              <option>rutinas de pensamiento visible</option>
+              <option>evaluación formativa con retroalimentación inmediata</option>
+              <option>estrategias de aprendizaje cooperativo</option>
+              <option>diferenciación curricular por niveles</option>
+              <option>lectura en voz alta diaria</option>
+              <option>acompañamiento individualizado y tutoría entre pares</option>
+            </select>
+            <div class="diag-hyp-prefix">durante</div>
+            <select class="form-select diag-hyp-field" id="hyp-tiempo">
+              <option value="">— duración —</option>
+              <option>4 semanas (1 mes)</option>
+              <option>8 semanas (1 bimestre)</option>
+              <option>12 semanas (1 trimestre)</option>
+              <option>todo el año escolar</option>
+            </select>
+            <div class="diag-hyp-prefix">entonces mis estudiantes mejorarán</div>
+            <select class="form-select diag-hyp-field" id="hyp-mejora">
+              <option value="">— el aspecto a mejorar —</option>
+              <option>la comprensión lectora en textos narrativos</option>
+              <option>la producción de textos con coherencia y cohesión</option>
+              <option>el razonamiento matemático en problemas cotidianos</option>
+              <option>la comunicación oral en situaciones reales</option>
+              <option>la convivencia y resolución pacífica de conflictos</option>
+              <option>el desempeño general en todas las áreas</option>
+            </select>
+            <div class="diag-hyp-prefix">en un nivel</div>
+            <select class="form-select diag-hyp-field" id="hyp-nivel-cambio">
+              <option value="">— grado de cambio esperado —</option>
+              <option>básico (de En Inicio → En Proceso)</option>
+              <option>intermedio (de En Proceso → Logro Esperado)</option>
+              <option>avanzado (de Logro Esperado → Logro Destacado)</option>
+            </select>
+          </div>
+
+          <!-- Vista previa de hipótesis construida -->
+          <div class="diag-hyp-preview" id="diag-hyp-preview">
+            <div class="diag-hyp-preview-label">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Vista previa de tu hipótesis
+            </div>
+            <div class="diag-hyp-preview-text" id="diag-hyp-text">
+              <em style="color:var(--text-muted);">Completa los campos de arriba para ver tu hipótesis aquí…</em>
+            </div>
+          </div>
+
+          <div class="diag-question" style="margin-top:12px;">
+            <div class="diag-q-text">¿Quieres agregar algún detalle adicional a tu hipótesis?</div>
+            <textarea class="form-textarea" id="diag-hipotesis-extra" placeholder="Opcional: agrega contexto, condiciones específicas o aclaraciones…" style="min-height:56px;"></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Compromisos docentes</label>
+          <div class="diag-check-grid">
+            <label class="diag-check"><input type="checkbox" name="compromisos" value="planificacion-diferenciada" checked> Planificación diferenciada</label>
+            <label class="diag-check"><input type="checkbox" name="compromisos" value="evaluacion-formativa" checked> Evaluación formativa continua</label>
+            <label class="diag-check"><input type="checkbox" name="compromisos" value="estrategias-diversificadas"> Estrategias diversificadas</label>
+            <label class="diag-check"><input type="checkbox" name="compromisos" value="trabajo-familia"> Involucramiento de familias</label>
+            <label class="diag-check"><input type="checkbox" name="compromisos" value="trabajo-colaborativo"> Trabajo colaborativo docente</label>
+            <label class="diag-check"><input type="checkbox" name="compromisos" value="seguimiento-individual"> Seguimiento individualizado NEE</label>
+          </div>
+        </div>
+
+        <div class="inline-alert ok" style="margin-top:4px;">
+          <strong>🎯 Al completar este diagnóstico,</strong> la IA personalizará tu planificación anual, unidades y sesiones considerando el contexto real de tu aula.
+        </div>
+
+        <button type="button" class="btn btn-primary" id="btn-save-diagnostico" style="margin-top:4px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Enviar diagnóstico a la IA
+        </button>
+      </div><!-- /diag-step-4 -->
+
+      <!-- Navigation buttons -->
+      <div style="display:flex; gap:8px; margin-top:16px;" id="diag-nav-row">
+        <button class="btn btn-secondary" id="btn-diag-prev" style="display:none; flex:1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m15 18-6-6 6-6"/></svg>
+          Anterior
+        </button>
+        <button class="btn btn-primary" id="btn-diag-next" style="flex:1;">
+          Siguiente
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </div><!-- /view-diagnostico -->
+
+
+  <!-- ═══════════════════════════════════════
+       VIEW: PLANIFICACIÓN ANUAL
+  ═══════════════════════════════════════ -->
+  <div id="view-planificacion" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-planificacion">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label">Paso 03 — Programación Curricular</div>
+        <div class="view-header-title">Planificación Anual</div>
+      </div>
+    </div>
+
+    <!-- Section tabs -->
+    <div class="pa-tabs" id="pa-tabs">
+      <button class="pa-tab active" data-sec="1">Datos</button>
+      <button class="pa-tab" data-sec="2">Propósito</button>
+      <button class="pa-tab" data-sec="3">Competencias</button>
+      <button class="pa-tab" data-sec="4">Unidades</button>
+      <button class="pa-tab" data-sec="5">Evaluación</button>
+    </div>
+
+    <div class="scroll-area" style="flex:1; min-height:0; padding:0 16px 88px;">
+
+      <!-- ══ SECCIÓN 1: DATOS GENERALES ══════════════════════════════ -->
+      <div id="pa-sec-1" class="pa-section">
+        <div class="pa-section-header">
+          <div class="pa-section-tag">I</div>
+          <div>
+            <div class="pa-section-title">Datos Generales</div>
+            <div class="pa-section-sub">Información institucional de la programación anual 2026</div>
+          </div>
+        </div>
+
+        <div class="pa-info-card">
+          <div class="pa-info-row">
+            <span class="pa-info-label">Año lectivo</span>
+            <span class="pa-info-value">2026</span>
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">D.R.E.</span>
+            <input class="pa-info-input" type="text" id="pa-dre" placeholder="Ej. DRE Cajamarca">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">UGEL</span>
+            <input class="pa-info-input" type="text" id="pa-ugel" placeholder="UGEL Cajamarca">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">I.E.</span>
+            <input class="pa-info-input" type="text" id="pa-ie" placeholder="Nombre de la institución">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Director(a)</span>
+            <input class="pa-info-input" type="text" id="pa-director" placeholder="Nombre del director(a)">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Docente</span>
+            <input class="pa-info-input" type="text" id="pa-docente" placeholder="Nombre completo">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Nivel</span>
+            <select class="pa-info-select" id="pa-nivel">
+              <option value="">—</option>
+              <option>Inicial</option><option>Primaria</option><option>Secundaria</option>
+            </select>
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Grado / Sección</span>
+            <input class="pa-info-input" type="text" id="pa-grado" placeholder="Ej. 4° B">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Área curricular</span>
+            <select class="pa-info-select" id="pa-area">
+              <option value="">—</option>
+              <option>Comunicación</option><option>Matemática</option>
+              <option>Personal Social</option><option>Ciencia y Tecnología</option>
+              <option>Arte y Cultura</option><option>Educación Física</option>
+              <option>Educación para el Trabajo</option><option>Inglés</option>
+              <option>Historia Geografía y Economía</option>
+              <option>Desarrollo Personal Ciudadanía y Cívica</option>
+              <option>Tutoría y Orientación Educativa</option>
+            </select>
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Modalidad</span>
+            <select class="pa-info-select" id="pa-modalidad">
+              <option>EBR</option><option>EBA</option><option>EBE</option>
+            </select>
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Organización</span>
+            <select class="pa-info-select" id="pa-organizacion">
+              <option value="bimestral">Bimestral (4 períodos)</option>
+              <option value="trimestral">Trimestral (3 períodos)</option>
+            </select>
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">N° semanas</span>
+            <input class="pa-info-input" type="number" id="pa-semanas" value="40" min="20" max="44">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Horas semanales</span>
+            <input class="pa-info-input" type="number" id="pa-horas" placeholder="4" min="1" max="12">
+          </div>
+        </div>
+
+        <div class="pa-section-nav">
+          <button class="btn btn-primary" onclick="paGoTo(2)">
+            Siguiente — Propósito <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div><!-- /pa-sec-1 -->
+
+      <!-- ══ SECCIÓN 2: PROPÓSITO Y SITUACIÓN SIGNIFICATIVA ══════════ -->
+      <div id="pa-sec-2" class="pa-section" style="display:none;">
+        <div class="pa-section-header">
+          <div class="pa-section-tag">II</div>
+          <div>
+            <div class="pa-section-title">Propósito Anual &amp; Situación Significativa</div>
+            <div class="pa-section-sub">Marco motivador que articula las unidades del año</div>
+          </div>
+        </div>
+
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--terracotta-dim);color:var(--terracotta);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Propósito general del año</div>
+              <div class="diag-block-subtitle">¿Qué lograrán tus estudiantes al finalizar el año escolar 2026?</div>
+            </div>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">Enfoque del área que orientará la programación:</div>
+            <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;" id="pa-enfoque-list">
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="pa_enfoque" value="comunicativo-textual"><div class="diag-radio-inner"><span>Comunicativo-textual (Comunicación)</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="pa_enfoque" value="resolucion-problemas"><div class="diag-radio-inner"><span>Resolución de problemas (Matemática)</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="pa_enfoque" value="indagacion-cientifica"><div class="diag-radio-inner"><span>Indagación científica (CyT)</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="pa_enfoque" value="ciudadania-intercultural"><div class="diag-radio-inner"><span>Ciudadanía e interculturalidad (PS / DPCC / HGE)</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="pa_enfoque" value="expresion-artistica"><div class="diag-radio-inner"><span>Expresión artística (Arte y Cultura)</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="pa_enfoque" value="corporeidad-salud"><div class="diag-radio-inner"><span>Corporeidad y salud (Ed. Física)</span></div></label>
+              <label class="diag-radio-card diag-radio-sm"><input type="radio" name="pa_enfoque" value="otro-enfoque"><div class="diag-radio-inner"><span>Otro / combinado</span></div></label>
+            </div>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">Propósito de aprendizaje anual <span class="required">*</span></div>
+            <textarea class="form-textarea" id="pa-proposito" placeholder="Ej. Al finalizar el año, los estudiantes de 4° grado serán capaces de leer comprensivamente textos de diversa tipología y producir textos escritos con coherencia, cohesión y adecuación a situaciones comunicativas reales de su entorno." style="min-height:90px;"></textarea>
+          </div>
+        </div>
+
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--gold-dim);color:var(--gold);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Situación Significativa del Año</div>
+              <div class="diag-block-subtitle">El reto o problema contextualizado que motiva y articula todas las unidades</div>
+            </div>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">¿Desde qué contexto o problemática real parte la situación significativa?</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="pa_contexto_ss" value="comunidad-local"> Realidad de la comunidad local</label>
+              <label class="diag-check"><input type="checkbox" name="pa_contexto_ss" value="identidad-cultural"> Identidad y cultura regional</label>
+              <label class="diag-check"><input type="checkbox" name="pa_contexto_ss" value="medio-ambiente"> Cuidado del medio ambiente</label>
+              <label class="diag-check"><input type="checkbox" name="pa_contexto_ss" value="tecnologia-digital"> Tecnología y mundo digital</label>
+              <label class="diag-check"><input type="checkbox" name="pa_contexto_ss" value="salud-bienestar"> Salud y bienestar personal</label>
+              <label class="diag-check"><input type="checkbox" name="pa_contexto_ss" value="convivencia-paz"> Convivencia y paz social</label>
+              <label class="diag-check"><input type="checkbox" name="pa_contexto_ss" value="emprendimiento"> Emprendimiento y trabajo</label>
+              <label class="diag-check"><input type="checkbox" name="pa_contexto_ss" value="derechos-ciudadania"> Derechos y ciudadanía</label>
+            </div>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">Situación significativa del año <span class="required">*</span></div>
+            <textarea class="form-textarea" id="pa-situacion-sig" placeholder="Ej. Los estudiantes de la IE N° 82001 observan que en su comunidad existe una pérdida progresiva del quechua y las tradiciones locales. Ante esta realidad, se plantean el reto: ¿Cómo podemos documentar, preservar y difundir nuestra identidad cultural cajamarquina a través de textos escritos y orales?" style="min-height:110px;"></textarea>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">Producto final integrador del año (evidencia de aprendizaje)</div>
+            <select class="form-select" id="pa-producto-final">
+              <option value="">Seleccionar tipo de producto</option>
+              <optgroup label="Textos escritos">
+                <option>Revista o periódico escolar</option>
+                <option>Libro de cuentos o relatos</option>
+                <option>Informe de investigación</option>
+                <option>Texto argumentativo colectivo</option>
+              </optgroup>
+              <optgroup label="Proyectos y producciones">
+                <option>Proyecto de innovación o emprendimiento</option>
+                <option>Maqueta o prototipo científico</option>
+                <option>Exposición artística o muestra cultural</option>
+                <option>Video documental comunitario</option>
+              </optgroup>
+              <optgroup label="Eventos escolares">
+                <option>Feria de ciencias o logros</option>
+                <option>Festival cultural o literario</option>
+                <option>Campaña de sensibilización comunitaria</option>
+              </optgroup>
+              <option value="otro">Otro (lo describo en propósito)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pa-section-nav">
+          <button class="btn btn-secondary" onclick="paGoTo(1)" style="flex:1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m15 18-6-6 6-6"/></svg> Anterior
+          </button>
+          <button class="btn btn-primary" onclick="paGoTo(3)" style="flex:2;">
+            Siguiente — Competencias <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div><!-- /pa-sec-2 -->
+
+      <!-- ══ SECCIÓN 3: COMPETENCIAS Y CAPACIDADES ═══════════════════ -->
+      <div id="pa-sec-3" class="pa-section" style="display:none;">
+        <div class="pa-section-header">
+          <div class="pa-section-tag">III</div>
+          <div>
+            <div class="pa-section-title">Competencias, Capacidades y Estándares</div>
+            <div class="pa-section-sub">Selecciona las competencias del CNEB a desarrollar este año</div>
+          </div>
+        </div>
+
+        <div class="inline-alert info" style="margin-bottom:12px;">
+          Selecciona el área para ver las competencias y capacidades del CNEB correspondientes.
+        </div>
+
+        <!-- Area selector pills -->
+        <div class="pa-area-pills" id="pa-area-pills">
+          <button class="pa-area-pill active" data-area="comunicacion">Comunicación</button>
+          <button class="pa-area-pill" data-area="matematica">Matemática</button>
+          <button class="pa-area-pill" data-area="personal-social">P. Social</button>
+          <button class="pa-area-pill" data-area="ciencia">C. y Tec.</button>
+          <button class="pa-area-pill" data-area="arte">Arte</button>
+          <button class="pa-area-pill" data-area="ef">Ed. Física</button>
+        </div>
+
+        <!-- Competencias panels per area -->
+        <div id="pa-competencias-panel">
+
+          <!-- COMUNICACIÓN -->
+          <div class="pa-comp-panel" id="pc-comunicacion">
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="lee-textos-escritos" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Lee diversos tipos de textos escritos en lengua materna</div>
+                  <div class="pa-comp-caps" id="caps-lee">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="obtiene-informacion" checked> Obtiene información del texto escrito</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="infiere-interpreta" checked> Infiere e interpreta información</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="reflexiona-evalua" checked> Reflexiona y evalúa la forma, el contenido y contexto</label>
+                  </div>
+                </div>
+              </label>
+              <div class="pa-estandar">
+                <span class="pa-estandar-tag">Estándar CNEB</span>
+                <span id="std-lee-textos">Lee textos de mediana complejidad que presentan estructura explicita con algunos elementos complejos, vocabulario variado y temáticas diversas, con propósito lector definido.</span>
               </div>
             </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="escribe-textos" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Escribe diversos tipos de textos en lengua materna</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="adecua-texto" checked> Adecúa el texto a la situación comunicativa</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="organiza-ideas" checked> Organiza y desarrolla las ideas de forma coherente</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="usa-convenciones"> Utiliza convenciones del lenguaje escrito</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="reflexiona-escrito"> Reflexiona y evalúa la forma, contenido y contexto</label>
+                  </div>
+                </div>
+              </label>
+              <div class="pa-estandar">
+                <span class="pa-estandar-tag">Estándar CNEB</span>
+                <span>Escribe textos de forma cohesionada y coherente, considerando estructura textual y adecuación a la situación comunicativa, con uso de recursos ortográficos básicos.</span>
+              </div>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="se-comunica-oralmente">
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Se comunica oralmente en su lengua materna</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="obtiene-info-oral"> Obtiene información de textos orales</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="infiere-oral"> Infiere e interpreta información</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="adecua-oral"> Adecúa, organiza y desarrolla ideas</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="interactua"> Interactúa estratégicamente con distintos interlocutores</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="reflexiona-oral"> Reflexiona y evalúa la forma, contenido y contexto</label>
+                  </div>
+                </div>
+              </label>
+              <div class="pa-estandar">
+                <span class="pa-estandar-tag">Estándar CNEB</span>
+                <span>Participa en intercambios orales adaptando el registro según contexto, sosteniendo el hilo temático y evaluando el contenido del discurso propio y ajeno.</span>
+              </div>
+            </div>
+          </div><!-- /pc-comunicacion -->
+
+          <!-- MATEMÁTICA -->
+          <div class="pa-comp-panel" id="pc-matematica" style="display:none;">
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="resuelve-cantidad" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Resuelve problemas de cantidad</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="traduce-cantidad" checked> Traduce cantidades a expresiones numéricas</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="comunica-cantidad" checked> Comunica su comprensión sobre los números</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="usa-estrategias-cantidad" checked> Usa estrategias y procedimientos de estimación y cálculo</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="argumenta-cantidad"> Argumenta afirmaciones sobre relaciones numéricas</label>
+                  </div>
+                </div>
+              </label>
+              <div class="pa-estandar">
+                <span class="pa-estandar-tag">Estándar CNEB</span>
+                <span>Resuelve problemas referidos a acciones de repartir, agrupar, combinar colecciones de objetos, identificar equivalencias entre unidades de tiempo, comparar y estimar cantidades.</span>
+              </div>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="resuelve-regularidad" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Resuelve problemas de regularidad, equivalencia y cambio</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="traduce-regularidad" checked> Traduce datos y condiciones a expresiones algebraicas</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="comunica-regularidad"> Comunica su comprensión sobre relaciones algebraicas</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="usa-estrategias-regularidad" checked> Usa estrategias y procedimientos para encontrar equivalencias</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="argumenta-regularidad"> Argumenta afirmaciones sobre relaciones de cambio</label>
+                  </div>
+                </div>
+              </label>
+              <div class="pa-estandar">
+                <span class="pa-estandar-tag">Estándar CNEB</span>
+                <span>Resuelve problemas que presentan relaciones de equivalencia entre dos grupos de datos y patrones de repetición y crecimiento con un criterio perceptual y de forma.</span>
+              </div>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="resuelve-forma">
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Resuelve problemas de forma, movimiento y localización</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="modela-forma"> Modela objetos con formas geométricas y sus transformaciones</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="comunica-forma"> Comunica su comprensión sobre formas y relaciones geométricas</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="usa-estrategias-forma"> Usa estrategias y procedimientos de orientación espacial</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="argumenta-forma"> Argumenta afirmaciones sobre relaciones geométricas</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="resuelve-datos">
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Resuelve problemas de gestión de datos e incertidumbre</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="representa-datos"> Representa datos con gráficos y medidas estadísticas</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="comunica-datos"> Comunica la comprensión de conceptos estadísticos</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="usa-estrategias-datos"> Usa estrategias y procedimientos para recopilar datos</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="sustenta-datos"> Sustenta conclusiones sobre datos estadísticos</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div><!-- /pc-matematica -->
+
+          <!-- PERSONAL SOCIAL -->
+          <div class="pa-comp-panel" id="pc-personal-social" style="display:none;">
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="construye-identidad" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Construye su identidad</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="se-valora" checked> Se valora a sí mismo</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="autorregula-emociones" checked> Autorregula sus emociones</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="reflexiona-experiencias"> Reflexiona y argumenta éticamente</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="vive-su-sexualidad"> Vive su sexualidad de manera integral</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="convive-participa" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Convive y participa democráticamente</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="interactua-respeto" checked> Interactúa con todas las personas</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="construye-normas" checked> Construye y asume acuerdos y leyes</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="maneja-conflictos"> Maneja conflictos de manera constructiva</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="delibera-asuntos"> Delibera sobre asuntos públicos</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="participa-acciones"> Participa en acciones que promueven el bienestar</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="construye-historia">
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Construye interpretaciones históricas</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="interpreta-fuentes"> Interpreta críticamente fuentes diversas</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="comprende-tiempo"> Comprende el tiempo histórico</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="elabora-explicaciones"> Elabora explicaciones sobre procesos históricos</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="gestiona-espacio">
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Gestiona responsablemente el espacio y el ambiente</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="comprende-espacio"> Comprende las relaciones entre los elementos naturales y sociales</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="maneja-fuentes-geo"> Maneja fuentes de información para comprender el espacio geográfico</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="genera-acciones-geo"> Genera acciones para preservar el ambiente</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div><!-- /pc-personal-social -->
+
+          <!-- CIENCIA Y TECNOLOGÍA -->
+          <div class="pa-comp-panel" id="pc-ciencia" style="display:none;">
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="indaga-metodos" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Indaga mediante métodos científicos</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="problematiza" checked> Problematiza situaciones para hacer indagación</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="diseña-estrategias" checked> Diseña estrategias para hacer indagación</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="genera-registra" checked> Genera y registra datos e información</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="analiza-datos"> Analiza datos e información</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="evalua-comunica"> Evalúa y comunica el proceso y resultados</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="explica-mundo" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="comprende-conocimientos" checked> Comprende y usa conocimientos sobre los seres vivos</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="evalua-implicancias"> Evalúa las implicancias del saber y del quehacer científico</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="diseña-soluciones">
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Diseña y construye soluciones tecnológicas</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="determina-alternativa"> Determina una alternativa de solución tecnológica</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="diseña-alternativa"> Diseña la alternativa de solución tecnológica</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="implementa-plan"> Implementa y valida alternativas de solución tecnológica</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="evalua-reflexiona"> Evalúa y reflexiona sobre la solución tecnológica</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div><!-- /pc-ciencia -->
+
+          <!-- ARTE -->
+          <div class="pa-comp-panel" id="pc-arte" style="display:none;">
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="aprecia-arte" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Aprecia de manera crítica manifestaciones artístico-culturales</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="percibe-contexto" checked> Percibe manifestaciones artístico-culturales</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="contextualiza" checked> Contextualiza las manifestaciones culturales</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="reflexiona-arte"> Reflexiona creativa y críticamente</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="crea-proyectos" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Crea proyectos desde los lenguajes artísticos</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="explora-experimenta" checked> Explora y experimenta los lenguajes artísticos</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="aplica-procesos" checked> Aplica procesos creativos</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="evalua-socializa"> Evalúa y socializa sus procesos y proyectos</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div><!-- /pc-arte -->
+
+          <!-- EDUCACIÓN FÍSICA -->
+          <div class="pa-comp-panel" id="pc-ef" style="display:none;">
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="se-desenvuelve-motricidad" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Se desenvuelve de manera autónoma a través de su motricidad</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="comprende-cuerpo" checked> Comprende su cuerpo</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="se-expresa-motriz" checked> Se expresa corporalmente</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="asume-vida-saludable" checked>
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Asume una vida saludable</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="comprende-salud" checked> Comprende las relaciones entre actividad física, alimentación y salud</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="incorpora-practicas" checked> Incorpora prácticas que mejoran su calidad de vida</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div class="pa-comp-card">
+              <label class="pa-comp-toggle">
+                <input type="checkbox" name="competencia" value="interactua-sociomotriz">
+                <div class="pa-comp-body">
+                  <div class="pa-comp-name">Interactúa a través de sus habilidades sociomotrices</div>
+                  <div class="pa-comp-caps">
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="se-relaciona-juegos"> Se relaciona usando sus habilidades sociomotrices</label>
+                    <label class="pa-cap-check"><input type="checkbox" name="cap" value="crea-juegos"> Crea y aplica estrategias y tácticas de juego</label>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div><!-- /pc-ef -->
+
+        </div><!-- /pa-competencias-panel -->
+
+        <div class="pa-section-nav">
+          <button class="btn btn-secondary" onclick="paGoTo(2)" style="flex:1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m15 18-6-6 6-6"/></svg> Anterior
+          </button>
+          <button class="btn btn-primary" onclick="paGoTo(4)" style="flex:2;">
+            Siguiente — Unidades <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div><!-- /pa-sec-3 -->
+
+      <!-- ══ SECCIÓN 4: ORGANIZADOR DE UNIDADES ═══════════════════════ -->
+      <div id="pa-sec-4" class="pa-section" style="display:none;">
+        <div class="pa-section-header">
+          <div class="pa-section-tag">IV</div>
+          <div>
+            <div class="pa-section-title">Organizador de Unidades Didácticas</div>
+            <div class="pa-section-sub">Define el título, situación significativa, evidencia y duración de cada unidad</div>
           </div>
+        </div>
+
+        <div class="inline-alert info" style="margin-bottom:12px;">
+          La IA generará el contenido completo de cada unidad. Aquí defines la estructura del año.
+        </div>
+
+        <div id="pa-unidades-list"></div>
+
+        <button class="btn btn-ghost" id="btn-add-unidad" style="margin-bottom:16px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar unidad
+        </button>
+
+        <!-- Resumen visual del año -->
+        <div class="pa-year-map" id="pa-year-map">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Mapa del año</div>
+          <div class="pa-year-grid" id="pa-year-grid"></div>
+        </div>
+
+        <div class="pa-section-nav">
+          <button class="btn btn-secondary" onclick="paGoTo(3)" style="flex:1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m15 18-6-6 6-6"/></svg> Anterior
+          </button>
+          <button class="btn btn-primary" onclick="paGoTo(5)" style="flex:2;">
+            Siguiente — Evaluación <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div><!-- /pa-sec-4 -->
+
+      <!-- ══ SECCIÓN 5: EVALUACIÓN Y RECURSOS ════════════════════════ -->
+      <div id="pa-sec-5" class="pa-section" style="display:none;">
+        <div class="pa-section-header">
+          <div class="pa-section-tag">V</div>
+          <div>
+            <div class="pa-section-title">Evaluación, Estrategias y Recursos</div>
+            <div class="pa-section-sub">Cierra la programación con los elementos de evaluación y soporte</div>
+          </div>
+        </div>
+
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--terracotta-dim);color:var(--terracotta);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Evaluación formativa</div>
+              <div class="diag-block-subtitle">¿Qué instrumentos usarás para monitorear el aprendizaje?</div>
+            </div>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">Instrumentos de evaluación a utilizar:</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="pa_instrumentos" value="lista-cotejo" checked> Lista de cotejo</label>
+              <label class="diag-check"><input type="checkbox" name="pa_instrumentos" value="rubrica" checked> Rúbrica holística</label>
+              <label class="diag-check"><input type="checkbox" name="pa_instrumentos" value="escala-valoracion"> Escala de valoración</label>
+              <label class="diag-check"><input type="checkbox" name="pa_instrumentos" value="registro-anecdotico"> Registro anecdótico</label>
+              <label class="diag-check"><input type="checkbox" name="pa_instrumentos" value="prueba-escrita"> Prueba escrita</label>
+              <label class="diag-check"><input type="checkbox" name="pa_instrumentos" value="portafolio"> Portafolio de evidencias</label>
+              <label class="diag-check"><input type="checkbox" name="pa_instrumentos" value="autoevaluacion"> Autoevaluación</label>
+              <label class="diag-check"><input type="checkbox" name="pa_instrumentos" value="coevaluacion"> Coevaluación entre pares</label>
+            </div>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">¿Cómo comunicarás los avances a las familias?</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="pa_comunicacion_familias" value="libretas" checked> Libretas de notas (SIAGIE)</label>
+              <label class="diag-check"><input type="checkbox" name="pa_comunicacion_familias" value="informes-bimestrales" checked> Informes bimestrales/trimestrales</label>
+              <label class="diag-check"><input type="checkbox" name="pa_comunicacion_familias" value="reuniones"> Reuniones de padres</label>
+              <label class="diag-check"><input type="checkbox" name="pa_comunicacion_familias" value="whatsapp"> Grupo de WhatsApp</label>
+              <label class="diag-check"><input type="checkbox" name="pa_comunicacion_familias" value="visitas-domiciliarias"> Visitas domiciliarias</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--sage-dim);color:var(--sage);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Enfoques transversales</div>
+              <div class="diag-block-subtitle">Enfoques del CNEB que atraviesan la programación del año</div>
+            </div>
+          </div>
+          <div class="diag-question" style="border:none;padding:0;margin:0;">
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="pa_enfoques" value="derechos" checked> Enfoque de Derechos</label>
+              <label class="diag-check"><input type="checkbox" name="pa_enfoques" value="inclusion" checked> Enfoque de Inclusión</label>
+              <label class="diag-check"><input type="checkbox" name="pa_enfoques" value="intercultural"> Enfoque Intercultural</label>
+              <label class="diag-check"><input type="checkbox" name="pa_enfoques" value="igualdad-genero"> Enfoque Igualdad de Género</label>
+              <label class="diag-check"><input type="checkbox" name="pa_enfoques" value="ambiental"> Enfoque Ambiental</label>
+              <label class="diag-check"><input type="checkbox" name="pa_enfoques" value="orientacion-bien-comun"> Orientación al Bien Común</label>
+              <label class="diag-check"><input type="checkbox" name="pa_enfoques" value="busqueda-excelencia"> Búsqueda de la Excelencia</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:rgba(58,74,92,0.25);color:#7B9AC4;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Recursos y materiales</div>
+              <div class="diag-block-subtitle">¿Con qué recursos contará la programación?</div>
+            </div>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">Materiales físicos:</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="pa_materiales" value="libros-minedu" checked> Libros y textos MINEDU</label>
+              <label class="diag-check"><input type="checkbox" name="pa_materiales" value="cuadernos" checked> Cuadernos de trabajo</label>
+              <label class="diag-check"><input type="checkbox" name="pa_materiales" value="material-concreto"> Material concreto</label>
+              <label class="diag-check"><input type="checkbox" name="pa_materiales" value="biblioteca"> Biblioteca de aula</label>
+              <label class="diag-check"><input type="checkbox" name="pa_materiales" value="material-arte"> Material de arte</label>
+              <label class="diag-check"><input type="checkbox" name="pa_materiales" value="recursos-entorno"> Recursos del entorno natural</label>
+            </div>
+          </div>
+          <div class="diag-question" style="border:none;padding:0;margin:0;">
+            <div class="diag-q-text">Recursos digitales:</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="pa_digital" value="perueduca"> PerúEduca</label>
+              <label class="diag-check"><input type="checkbox" name="pa_digital" value="aprendo-en-casa"> Aprendo en Casa</label>
+              <label class="diag-check"><input type="checkbox" name="pa_digital" value="videos-youtube"> Videos educativos (YouTube)</label>
+              <label class="diag-check"><input type="checkbox" name="pa_digital" value="tablets-xo"> Tablets / XO</label>
+              <label class="diag-check"><input type="checkbox" name="pa_digital" value="docent-ia"> DOCENT-IA</label>
+              <label class="diag-check"><input type="checkbox" name="pa_digital" value="sin-digital"> Sin recursos digitales</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- GENERATE BUTTON -->
+        <div style="background:linear-gradient(135deg,var(--terracotta-dim),var(--surface));border:1px solid var(--terracotta);border-radius:var(--r-xl);padding:16px;margin-bottom:12px;">
+          <div style="font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--terracotta);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+            <span class="ai-dot"></span>DOCENT-IA generará por ti
+          </div>
+          <div style="font-family:'Fraunces',serif;font-size:13px;font-style:italic;color:var(--text);margin-bottom:12px;line-height:1.4;">
+            Tu Programación Anual completa, lista para imprimir y presentar a UGEL, con todos los campos del formato MINEDU 2026.
+          </div>
+          <button class="btn btn-primary" id="btn-gen-planificacion">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Generar Programación Anual con IA
+          </button>
+        </div>
+
+        <div class="pa-section-nav">
+          <button class="btn btn-secondary" onclick="paGoTo(4)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m15 18-6-6 6-6"/></svg> Anterior
+          </button>
+        </div>
+      </div><!-- /pa-sec-5 -->
+
+    </div>
+  </div><!-- /view-planificacion -->
+
+
+  <!-- ═══════════════════════════════════════
+       VIEW: UNIDAD DIDÁCTICA
+  ═══════════════════════════════════════ -->
+  <div id="view-unidad" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-unidad">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label">Paso 03 — Diseño didáctico</div>
+        <div class="view-header-title">Unidad Didáctica</div>
+      </div>
+    </div>
+    <div class="scroll-area" style="flex:1; min-height:0; padding:0 16px 80px;">
+      <div class="inline-alert info mb-4">
+        <strong>IA generará:</strong> título, competencias, capacidades, desempeños, situación significativa, evidencias, recursos y cronograma alineados al CNEB.
+      </div>
+      <form id="unit-form" novalidate>
+        <div class="form-group">
+          <label class="form-label">Título de la unidad <span class="required">*</span></label>
+          <input class="form-input" type="text" name="titulo" placeholder="Ej. Comunicamos nuestras emociones" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Grado <span class="required">*</span></label>
+          <select class="form-select" name="grado" required>
+            <option value="">Seleccionar</option>
+            <option>1° grado</option><option>2° grado</option><option>3° grado</option>
+            <option>4° grado</option><option>5° grado</option><option>6° grado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Área <span class="required">*</span></label>
+          <select class="form-select" name="area" required>
+            <option value="">Seleccionar</option>
+            <option>Comunicación</option><option>Matemática</option>
+            <option>Ciencia y Tecnología</option><option>Personal Social</option>
+            <option>Arte y Cultura</option><option>Educación Física</option>
+          </select>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Duración (semanas) <span class="required">*</span></label>
+            <input class="form-input" type="number" name="duracion" placeholder="4" min="1" max="12" required>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Bimestre/Trimestre</label>
+            <select class="form-select" name="bimestre">
+              <option value="">—</option>
+              <option>1° Bimestre</option><option>2° Bimestre</option>
+              <option>3° Bimestre</option><option>4° Bimestre</option>
+              <option>1° Trimestre</option><option>2° Trimestre</option><option>3° Trimestre</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Competencias a desarrollar <span class="required">*</span></label>
+          <textarea class="form-textarea" name="competencias" placeholder="Ej. Se comunica oralmente en su lengua materna / Lee diversos tipos de textos..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Situación significativa</label>
+          <textarea class="form-textarea" name="situacion" placeholder="Describe el reto o problema contextualizado que motiva la unidad..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contexto adicional (opcional)</label>
+          <textarea class="form-textarea" name="contexto" placeholder="Características de los estudiantes, recursos disponibles, aspectos culturales…" style="min-height:60px;"></textarea>
+        </div>
+        <button type="button" class="btn btn-primary" id="btn-gen-unit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Generar con IA
+        </button>
+      </form>
+    </div>
+  </div><!-- /view-unidad -->
+
+
+  <!-- ═══════════════════════════════════════
+       VIEW: SESIÓN DE APRENDIZAJE
+  ═══════════════════════════════════════ -->
+  <div id="view-sesion" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-sesion">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label">Paso 04 — Ejecución</div>
+        <div class="view-header-title">Sesión de Aprendizaje</div>
+      </div>
+    </div>
+    <div class="scroll-area" style="flex:1; min-height:0; padding:0 16px 80px;">
+      <div class="inline-alert info mb-4">
+        <strong>IA generará:</strong> inicio, desarrollo y cierre con actividades, estrategias, recursos y tiempo asignado por momento pedagógico.
+      </div>
+      <form id="session-form" novalidate>
+        <div class="form-group">
+          <label class="form-label">Título de la sesión <span class="required">*</span></label>
+          <input class="form-input" type="text" name="titulo" placeholder="Ej. Leemos un cuento para inferir el tema" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Área <span class="required">*</span></label>
+          <select class="form-select" name="area" required>
+            <option value="">Seleccionar</option>
+            <option>Comunicación</option><option>Matemática</option>
+            <option>Ciencia y Tecnología</option><option>Personal Social</option>
+            <option>Arte y Cultura</option><option>Educación Física</option>
+          </select>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Grado <span class="required">*</span></label>
+            <select class="form-select" name="grado" required>
+              <option value="">—</option>
+              <option>1°</option><option>2°</option><option>3°</option>
+              <option>4°</option><option>5°</option><option>6°</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Duración <span class="required">*</span></label>
+            <select class="form-select" name="duracion" required>
+              <option value="">—</option>
+              <option>45 minutos</option><option>60 minutos</option>
+              <option>90 minutos</option><option>2 horas</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Propósito de la sesión <span class="required">*</span></label>
+          <textarea class="form-textarea" name="proposito" placeholder="¿Qué aprenderán los estudiantes? Describe el logro esperado." required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Competencia(s) y capacidad(es)</label>
+          <textarea class="form-textarea" name="competencias" placeholder="Ej. Lee diversos tipos de textos / Infiere e interpreta información…" style="min-height:60px;"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Recursos disponibles</label>
+          <input class="form-input" type="text" name="recursos" placeholder="Ej. pizarra, fichas de lectura, laptop…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Instrumento de evaluación</label>
+          <select class="form-select" name="instrumento">
+            <option value="">Sin instrumento</option>
+            <option>Lista de cotejo</option><option>Rúbrica</option>
+            <option>Registro anecdótico</option><option>Escala de valoración</option>
+            <option>Portafolio</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-primary" id="btn-gen-session">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Generar sesión con IA
+        </button>
+      </form>
+    </div>
+  </div><!-- /view-sesion -->
+
+
+  <!-- ═══════════════════════════════════════
+       VIEW: RÚBRICA
+  ═══════════════════════════════════════ -->
+  <div id="view-rubrica" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-rubrica">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label">Paso 06 — Evaluación</div>
+        <div class="view-header-title">Diseñador de Rúbrica</div>
+      </div>
+    </div>
+
+    <!-- Rubric section tabs -->
+    <div class="pa-tabs" id="rub-tabs">
+      <button class="pa-tab active" data-rsec="1">Encabezado</button>
+      <button class="pa-tab" data-rsec="2">Configuración</button>
+      <button class="pa-tab" data-rsec="3">Criterios</button>
+      <button class="pa-tab" data-rsec="4">Generar</button>
+    </div>
+
+    <div class="scroll-area" style="flex:1; min-height:0; padding:0 16px 88px;">
+
+      <!-- ══ SEC 1: ENCABEZADO (datos del documento) ══ -->
+      <div id="rub-sec-1" class="pa-section">
+        <div class="pa-section-header">
+          <div class="pa-section-tag" style="background:var(--gold)">I</div>
+          <div>
+            <div class="pa-section-title">Datos del Instrumento</div>
+            <div class="pa-section-sub">Encabezado oficial de la rúbrica según formato MINEDU 2026</div>
+          </div>
+        </div>
+
+        <!-- Auto-fill badge -->
+        <div class="inline-alert info" style="margin-bottom:12px;">
+          <strong>Completado desde tu perfil.</strong> Verifica y ajusta si es necesario.
+        </div>
+
+        <div class="pa-info-card">
+          <div class="pa-info-row">
+            <span class="pa-info-label">I.E.</span>
+            <input class="pa-info-input" type="text" id="rub-ie" placeholder="Institución Educativa">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Director(a)</span>
+            <input class="pa-info-input" type="text" id="rub-director" placeholder="Nombre del Director(a)">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Docente</span>
+            <input class="pa-info-input" type="text" id="rub-docente" placeholder="Nombre del docente">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Área</span>
+            <input class="pa-info-input" type="text" id="rub-area" placeholder="Área curricular">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Nivel / Grado</span>
+            <input class="pa-info-input" type="text" id="rub-grado" placeholder="Ej. Primaria — 4° grado A">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">UGEL</span>
+            <input class="pa-info-input" type="text" id="rub-ugel" placeholder="UGEL">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Año lectivo</span>
+            <input class="pa-info-input" type="text" id="rub-anio" value="2026">
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Bimestre / Período</span>
+            <select class="pa-info-select" id="rub-periodo">
+              <option>I Bimestre</option><option>II Bimestre</option>
+              <option>III Bimestre</option><option>IV Bimestre</option>
+              <option>I Trimestre</option><option>II Trimestre</option><option>III Trimestre</option>
+              <option>Anual</option>
+            </select>
+          </div>
+          <div class="pa-info-row">
+            <span class="pa-info-label">Fecha</span>
+            <input class="pa-info-input" type="text" id="rub-fecha" placeholder="Ej. Marzo 2026">
+          </div>
+        </div>
+
+        <div class="pa-section-nav">
+          <button class="btn btn-primary" onclick="rubGoTo(2)">
+            Siguiente — Configuración
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div><!-- /rub-sec-1 -->
+
+      <!-- ══ SEC 2: CONFIGURACIÓN DE LA RÚBRICA ══ -->
+      <div id="rub-sec-2" class="pa-section" style="display:none;">
+        <div class="pa-section-header">
+          <div class="pa-section-tag" style="background:var(--gold)">II</div>
+          <div>
+            <div class="pa-section-title">Configuración de la Rúbrica</div>
+            <div class="pa-section-sub">Tipo, competencia, capacidad y propósito del instrumento</div>
+          </div>
+        </div>
+
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--terracotta-dim);color:var(--terracotta);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Tipo de rúbrica</div>
+              <div class="diag-block-subtitle">¿Cómo se organizarán los descriptores?</div>
+            </div>
+          </div>
+          <div class="diag-question" style="border:none;padding:0;margin:0;">
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+              <label class="diag-radio-card diag-radio-sm">
+                <input type="radio" name="rub_tipo" value="holistica" checked>
+                <div class="diag-radio-inner">
+                  <div style="font-weight:600;font-size:12.5px;color:var(--text);margin-bottom:2px;">Holística</div>
+                  <div class="diag-radio-desc">Evalúa el desempeño global del estudiante en una sola escala. Más ágil para el docente.</div>
+                </div>
+              </label>
+              <label class="diag-radio-card diag-radio-sm">
+                <input type="radio" name="rub_tipo" value="analitica">
+                <div class="diag-radio-inner">
+                  <div style="font-weight:600;font-size:12.5px;color:var(--text);margin-bottom:2px;">Analítica</div>
+                  <div class="diag-radio-desc">Evalúa cada criterio de forma independiente. Permite retroalimentación específica por dimensión.</div>
+                </div>
+              </label>
+              <label class="diag-radio-card diag-radio-sm">
+                <input type="radio" name="rub_tipo" value="simple">
+                <div class="diag-radio-inner">
+                  <div style="font-weight:600;font-size:12.5px;color:var(--text);margin-bottom:2px;">Lista de cotejo con descriptores</div>
+                  <div class="diag-radio-desc">Indicadores de logro en formato Sí/No con descriptor. Ideal para productos concretos.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--sage-dim);color:var(--sage);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Competencia y capacidad CNEB</div>
+              <div class="diag-block-subtitle">¿Qué aprenderá a hacer el estudiante?</div>
+            </div>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">Competencia a evaluar <span class="required">*</span></div>
+            <input class="form-input" type="text" id="rub-competencia"
+              placeholder="Ej. Lee diversos tipos de textos escritos en lengua materna">
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">Capacidad(es) involucradas</div>
+            <textarea class="form-textarea" id="rub-capacidades" style="min-height:60px;"
+              placeholder="Ej. Obtiene información del texto / Infiere e interpreta información"></textarea>
+          </div>
+          <div class="diag-question" style="border:none;padding-bottom:0;margin-bottom:0;">
+            <div class="diag-q-text">Desempeño preciso a evaluar <span class="required">*</span></div>
+            <textarea class="form-textarea" id="rub-desempeno" style="min-height:70px;"
+              placeholder="Ej. Identifica información explícita e implícita en textos narrativos, distinguiendo lo relevante de lo complementario."></textarea>
+          </div>
+        </div>
+
+        <div class="diag-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:rgba(58,74,92,0.25);color:#7B9AC4;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Contexto de aplicación</div>
+              <div class="diag-block-subtitle">¿En qué momento y sobre qué se aplica?</div>
+            </div>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">Situación o tarea de evaluación</div>
+            <textarea class="form-textarea" id="rub-situacion-eval" style="min-height:60px;"
+              placeholder="Ej. Los estudiantes leen un texto expositivo sobre los ecosistemas andinos y responden preguntas de comprensión en distintos niveles."></textarea>
+          </div>
+          <div class="diag-question">
+            <div class="diag-q-text">Producto o evidencia que se evalúa</div>
+            <select class="form-select" id="rub-producto">
+              <option value="">Seleccionar tipo de evidencia</option>
+              <optgroup label="Textos escritos">
+                <option>Texto narrativo (cuento, historia)</option>
+                <option>Texto descriptivo</option>
+                <option>Texto argumentativo (ensayo, carta)</option>
+                <option>Texto expositivo (informe, resumen)</option>
+                <option>Texto instructivo (receta, manual)</option>
+                <option>Poema o texto literario</option>
+              </optgroup>
+              <optgroup label="Desempeños orales">
+                <option>Exposición oral</option>
+                <option>Debate o diálogo argumentativo</option>
+                <option>Lectura en voz alta con fluidez</option>
+                <option>Narración oral</option>
+              </optgroup>
+              <optgroup label="Resolución matemática">
+                <option>Resolución de problema matemático (proceso + resultado)</option>
+                <option>Producción de situaciones matemáticas</option>
+                <option>Representación gráfica o estadística</option>
+              </optgroup>
+              <optgroup label="Proyectos y productos">
+                <option>Proyecto de indagación científica</option>
+                <option>Maqueta o prototipo</option>
+                <option>Proyecto artístico o cultural</option>
+                <option>Proyecto de emprendimiento</option>
+              </optgroup>
+              <optgroup label="Desempeños y actitudes">
+                <option>Participación en actividad de convivencia</option>
+                <option>Desempeño en actividad motriz (EF)</option>
+                <option>Actitud y valores observados</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="diag-question" style="border:none;padding-bottom:0;margin-bottom:0;">
+            <div class="diag-q-text">Modalidad de evaluación</div>
+            <div class="diag-check-grid">
+              <label class="diag-check"><input type="checkbox" name="rub_modalidad" value="individual" checked> Individual</label>
+              <label class="diag-check"><input type="checkbox" name="rub_modalidad" value="grupal"> Grupal</label>
+              <label class="diag-check"><input type="checkbox" name="rub_modalidad" value="autoevaluacion"> Autoevaluación</label>
+              <label class="diag-check"><input type="checkbox" name="rub_modalidad" value="coevaluacion"> Coevaluación</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="pa-section-nav">
+          <button class="btn btn-secondary" onclick="rubGoTo(1)" style="flex:1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m15 18-6-6 6-6"/></svg> Anterior
+          </button>
+          <button class="btn btn-primary" onclick="rubGoTo(3)" style="flex:2;">
+            Siguiente — Criterios
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div><!-- /rub-sec-2 -->
+
+      <!-- ══ SEC 3: CRITERIOS ══ -->
+      <div id="rub-sec-3" class="pa-section" style="display:none;">
+        <div class="pa-section-header">
+          <div class="pa-section-tag" style="background:var(--gold)">III</div>
+          <div>
+            <div class="pa-section-title">Criterios de Evaluación</div>
+            <div class="pa-section-sub">Define los criterios; la IA construirá los descriptores por nivel</div>
+          </div>
+        </div>
+
+        <!-- Niveles reminder -->
+        <div class="rub-niveles-header">
+          <div class="rub-nivel-badge" style="background:rgba(76,175,125,0.15);color:#4CAF7D;border-color:#4CAF7D;">AD — Logro Destacado</div>
+          <div class="rub-nivel-badge" style="background:rgba(76,175,125,0.08);color:#4CAF7D;border-color:rgba(76,175,125,0.4);">A — Logro Esperado</div>
+          <div class="rub-nivel-badge" style="background:var(--gold-dim);color:var(--gold);border-color:var(--gold);">B — En Proceso</div>
+          <div class="rub-nivel-badge" style="background:rgba(224,82,82,0.12);color:#E05252;border-color:#E05252;">C — En Inicio</div>
+        </div>
+
+        <div id="rubric-body-v2"></div>
+
+        <div style="display:flex;gap:8px;margin:12px 0;">
+          <button class="btn btn-ghost btn-sm" id="btn-add-criterion" style="flex:1;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Agregar criterio
+          </button>
+        </div>
+
+        <!-- Sugerencias rápidas por área -->
+        <div class="diag-block" id="rub-sugerencias-block">
+          <div class="diag-block-header">
+            <div class="diag-block-icon" style="background:var(--gold-dim);color:var(--gold);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <div>
+              <div class="diag-block-title">Criterios sugeridos por área</div>
+              <div class="diag-block-subtitle">Toca para añadir rápidamente al listado</div>
+            </div>
+          </div>
+          <div id="rub-sugerencias-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
+
+        <div class="pa-section-nav">
+          <button class="btn btn-secondary" onclick="rubGoTo(2)" style="flex:1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m15 18-6-6 6-6"/></svg> Anterior
+          </button>
+          <button class="btn btn-primary" onclick="rubGoTo(4)" style="flex:2;">
+            Siguiente — Generar
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div><!-- /rub-sec-3 -->
+
+      <!-- ══ SEC 4: GENERAR ══ -->
+      <div id="rub-sec-4" class="pa-section" style="display:none;">
+        <div class="pa-section-header">
+          <div class="pa-section-tag" style="background:var(--gold)">IV</div>
+          <div>
+            <div class="pa-section-title">Generar Rúbrica</div>
+            <div class="pa-section-sub">Resumen y generación del instrumento completo</div>
+          </div>
+        </div>
+
+        <!-- Live preview card -->
+        <div class="rub-preview-card" id="rub-preview-card">
+          <div class="rub-preview-header">
+            <div class="rub-preview-ie" id="prev-ie">—</div>
+            <div class="rub-preview-meta" id="prev-meta">—</div>
+          </div>
+          <div class="rub-preview-title">RÚBRICA DE EVALUACIÓN</div>
+          <div class="rub-preview-rows" id="prev-rows"></div>
+          <div class="rub-preview-row" style="margin-top:8px;">
+            <span class="rub-preview-label">Competencia:</span>
+            <span id="prev-competencia" style="font-style:italic;color:var(--text-secondary);">—</span>
+          </div>
+          <div class="rub-preview-row">
+            <span class="rub-preview-label">Desempeño:</span>
+            <span id="prev-desempeno" style="font-size:11px;color:var(--text-muted);">—</span>
+          </div>
+          <div class="rub-preview-criterios" id="prev-criterios"></div>
+        </div>
+
+        <div class="inline-alert info" style="margin-bottom:12px;">
+          <strong>🤖 DOCENT-IA</strong> redactará descriptores precisos para cada nivel según los criterios definidos, alineados al CNEB y al estándar del grado.
+        </div>
+
+        <button class="btn btn-primary" id="btn-gen-rubric" style="margin-bottom:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Generar rúbrica completa con IA
+        </button>
+
+        <div class="pa-section-nav">
+          <button class="btn btn-secondary" onclick="rubGoTo(3)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="m15 18-6-6 6-6"/></svg> Anterior
+          </button>
+        </div>
+      </div><!-- /rub-sec-4 -->
+
+    </div>
+  </div><!-- /view-rubrica -->
+
+
+  <!-- ═══════════════════════════════════════
+       VIEW: MATERIALES
+  ═══════════════════════════════════════ -->
+  <div id="view-materiales" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-materiales">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label">Paso 06 — Repositorio</div>
+        <div class="view-header-title">Mis Materiales</div>
+      </div>
+    </div>
+    <div class="scroll-area" style="flex:1; min-height:0; padding:0 16px 80px;">
+      <div id="materials-loading" style="text-align:center; padding:24px; color:var(--text-muted); font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; display:none;">CARGANDO…</div>
+      <div id="materials-list"></div>
+      <div id="materials-empty" style="display:none;">
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="empty-title">Sin materiales aún</div>
+          <div class="empty-desc">Genera tu primera unidad o sesión y aparecerá aquí para descargar.</div>
         </div>
       </div>
-      <!-- END DASHBOARD VIEW -->
+    </div>
+  </div><!-- /view-materiales -->
 
-      <!-- ========================================== -->
-      <!-- VIEW: PROFILE                              -->
-      <!-- ========================================== -->
-      <div id="profile-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="user"></span>
-          </div>
-          <h1>Identidad Profesional</h1>
-          <p class="subtitle">Gestione su perfil pedagógico para recibir una asistencia contextualizada a su nivel, área y entorno educativo.</p>
-        </header>
 
-        <form id="profile-form" class="form-section">
-          
-          <h2 class="section-title">Datos Personales</h2>
-          <div class="glass">
-            <div class="form-group">
-              <label for="nombre">👤 Nombre Completo</label>
-              <input type="text" id="nombre" name="nombre" placeholder="Ej. Juan Pérez" autocomplete="name" required />
-            </div>
-          </div>
-
-          <h2 class="section-title">Perfil Profesional</h2>
-          
-          <div class="glass double-group">
-            <div class="form-group">
-              <label for="institucion">🏢 Institución Educativa</label>
-              <input type="text" id="institucion" name="institucion" placeholder="Ej. I.E. 001 San Juan" autocomplete="off" required />
-            </div>
-            <div class="form-group">
-              <label for="ugel">🏛️ UGEL</label>
-              <input type="text" id="ugel" name="ugel" placeholder="Ej. UGEL 03" autocomplete="off" required />
-            </div>
-          </div>
-
-          <div class="glass double-group">
-            <div class="form-group">
-              <label for="modalidad">📋 Modalidad</label>
-              <select id="modalidad" name="modalidad" required>
-                <option value="" disabled selected>Selecciona...</option>
-                <option value="EBR">EBR (Básica Regular)</option>
-                <option value="EBA">EBA (Básica Alternativa)</option>
-                <option value="EBE">EBE (Básica Especial)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="nivel">📚 Nivel Educativo</label>
-              <select id="nivel" name="nivel" required>
-                <option value="" disabled selected>Selecciona...</option>
-                <option value="Inicial">Inicial</option>
-                <option value="Primaria">Primaria</option>
-                <option value="Secundaria">Secundaria</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="glass">
-            <div class="form-group">
-              <label for="area">🎯 Área Curricular</label>
-              <input type="text" id="area" name="area" placeholder="Ej. Comunicación, Matemática..." autocomplete="off" required />
-            </div>
-          </div>
-
-          <h2 class="section-title">Ubicación Geográfica</h2>
-          
-          <div class="glass double-group">
-            <div class="form-group">
-              <label for="region">🌎 Región / Depto.</label>
-              <input type="text" id="region" name="region" placeholder="Ej. Lima, Cusco..." autocomplete="address-level1" required />
-            </div>
-            <div class="form-group">
-              <label for="provincia">📍 Provincia</label>
-              <input type="text" id="provincia" name="provincia" placeholder="Ej. Lima, Urubamba..." autocomplete="address-level2" required />
-            </div>
-          </div>
-
-          <div class="glass double-group">
-            <div class="form-group">
-              <label for="distrito">🏙️ Distrito</label>
-              <input type="text" id="distrito" name="distrito" placeholder="Ej. Miraflores..." autocomplete="address-level3" required />
-            </div>
-            <div class="form-group">
-              <label for="lugar_exacto">📌 Lugar Exacto</label>
-              <input type="text" id="lugar_exacto" name="lugar_exacto" placeholder="Ej. Caserío San Miguel..." autocomplete="off" />
-            </div>
-          </div>
-
-        </form>
+  <!-- ═══════════════════════════════════════
+       VIEW: CONVIVENCIA
+  ═══════════════════════════════════════ -->
+  <div id="view-convivencia" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-convivencia">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label">Soporte — Bienestar</div>
+        <div class="view-header-title">Convivencia Escolar</div>
       </div>
-      <!-- END PROFILE VIEW -->
+    </div>
+    <div class="scroll-area" style="flex:1; min-height:0; padding:0 16px 80px;">
+      <div class="inline-alert info mb-4">
+        Consulta protocolos de convivencia escolar, normas MINEDU y estrategias de bienestar SEL.
+      </div>
+      <form id="convivencia-form" novalidate>
+        <div class="form-group">
+          <label class="form-label">Situación o consulta <span class="required">*</span></label>
+          <textarea class="form-textarea" name="situacion" placeholder="Describe la situación de convivencia o el protocolo que necesitas consultar…" style="min-height:120px;" required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de consulta</label>
+          <select class="form-select" name="tipo">
+            <option>Protocolo de atención</option>
+            <option>Estrategia de prevención</option>
+            <option>Normas de convivencia</option>
+            <option>Orientación a familia</option>
+            <option>Acoso escolar / bullying</option>
+            <option>Violencia escolar</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-primary" id="btn-gen-convivencia">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          Consultar protocolo
+        </button>
+      </form>
+    </div>
+  </div><!-- /view-convivencia -->
 
-      <!-- ========================================== -->
-      <!-- VIEW: DIAGNÓSTICO SITUACIONAL (PRECISION)  -->
-      <!-- ========================================== -->
-      <div id="diagnostic-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="search"></span>
-          </div>
-          <h1>Diagnóstico de Contexto Educativo</h1>
-          <p class="subtitle">Auditoría Guiada basada en los 5 Compromisos de Gestión Escolar y Análisis PESTEL.</p>
-        </header>
 
-        <form id="diagnostic-form" class="form-section">
-          
-          <h2 class="section-title">Compromisos de Gestión Escolar (CGE)</h2>
-          
-          <div class="glass">
-            <div class="form-group">
-              <label for="cge1">CGE 1: Progreso de Aprendizajes</label>
-              <textarea id="cge1" placeholder="Ej: Brechas en comprensión lectora en 3er grado..." required></textarea>
-            </div>
-            <div class="form-group">
-              <label for="cge2">CGE 2: Acceso y Permanencia</label>
-              <textarea id="cge2" placeholder="Ej: Tasa de deserción del 5% por trabajo agrícola..." required></textarea>
-            </div>
-            <div class="form-group">
-              <label for="cge3">CGE 3: Calendarización y Condiciones Operativas</label>
-              <textarea id="cge3" placeholder="Ej: Mantenimiento pendiente en pabellón B..." required></textarea>
-            </div>
-            <div class="form-group">
-              <label for="cge4">CGE 4: Acompañamiento y Práctica Pedagógica</label>
-              <textarea id="cge4" placeholder="Ej: 60% de docentes en nivel satisfactorio de desempeño..." required></textarea>
-            </div>
-            <div class="form-group">
-              <label for="cge5">CGE 5: Gestión de la Convivencia Escolar</label>
-              <textarea id="cge5" placeholder="Ej: 3 casos reportados en SISEVE (resueltos)..." required></textarea>
-            </div>
+  <!-- ═══════════════════════════════════════
+       VIEW: METODOLOGÍA
+  ═══════════════════════════════════════ -->
+  <div id="view-metodologia" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-metodologia">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label">Soporte — Innovación</div>
+        <div class="view-header-title">Metodologías &amp; Proyectos</div>
+      </div>
+    </div>
+    <div class="scroll-area" style="flex:1; min-height:0; padding:0 16px 80px;">
+      <div class="inline-alert info mb-4">
+        Genera proyectos de aprendizaje y aplica metodologías innovadoras adaptadas al CNEB.
+      </div>
+      <form id="metodologia-form" novalidate>
+        <div class="form-group">
+          <label class="form-label">Metodología <span class="required">*</span></label>
+          <select class="form-select" name="metodologia" required>
+            <option value="">Seleccionar metodología</option>
+            <option>Aprendizaje Basado en Proyectos (ABP)</option>
+            <option>Aprendizaje Basado en Problemas</option>
+            <option>Aula Invertida (Flipped Classroom)</option>
+            <option>Design Thinking</option>
+            <option>Aprendizaje Cooperativo</option>
+            <option>Gamificación</option>
+            <option>STEAM</option>
+            <option>Servicio Comunitario (Aprendizaje-Servicio)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tema del proyecto <span class="required">*</span></label>
+          <input class="form-input" type="text" name="tema" placeholder="Ej. Cuidado del medio ambiente en nuestra comunidad" required>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Grado</label>
+            <select class="form-select" name="grado">
+              <option value="">—</option>
+              <option>1°</option><option>2°</option><option>3°</option>
+              <option>4°</option><option>5°</option><option>6°</option>
+            </select>
           </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Duración</label>
+            <select class="form-select" name="duracion">
+              <option>1 semana</option><option>2 semanas</option>
+              <option>1 mes</option><option>1 bimestre</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Áreas integradas</label>
+          <input class="form-input" type="text" name="areas" placeholder="Ej. Comunicación, Personal Social, Arte">
+        </div>
+        <button type="button" class="btn btn-primary" id="btn-gen-metodologia">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Diseñar proyecto con IA
+        </button>
+      </form>
+    </div>
+  </div><!-- /view-metodologia -->
 
-          <h2 class="section-title">Análisis PESTEL</h2>
-          
-          <div class="glass double-group">
-            <div class="form-group">
-              <label for="pestel_p">Político - Legal</label>
-              <textarea id="pestel_p" placeholder="Ej: Normativa local sobre transporte escolar..." required></textarea>
-            </div>
-            <div class="form-group">
-              <label for="pestel_e">Económico</label>
-              <textarea id="pestel_e" placeholder="Ej: Economía familiar basada en comercio local..." required></textarea>
-            </div>
-          </div>
-          
-          <div class="glass double-group">
-            <div class="form-group">
-              <label for="pestel_s">Socio - Cultural</label>
-              <textarea id="pestel_s" placeholder="Ej: Fuerte identidad con festividades patronales..." required></textarea>
-            </div>
-            <div class="form-group">
-              <label for="pestel_t">Tecnológico</label>
-              <textarea id="pestel_t" placeholder="Ej: Conectividad limitada (solo red 3G en zona)..." required></textarea>
-            </div>
-          </div>
-          
-          <div class="glass">
-            <div class="form-group">
-              <label for="pestel_ec">Ecológico / Ambiental</label>
-              <textarea id="pestel_ec" placeholder="Ej: Riesgo de heladas entre junio y agosto..." required></textarea>
-            </div>
-          </div>
 
-          <div class="action-buttons" style="margin-top: 2rem;">
-            <button type="submit" class="primary-btn">
-              <span class="professional-icon" data-icon="sparkles" style="width:16px;height:16px;margin-right:8px;"></span>
-              Generar Síntesis FODA Inteligente
-            </button>
-            <button type="button" id="btn-save-diagnostic-draft" class="secondary-btn">Guardar Borrador</button>
-          </div>
-          <div id="diagnostic-feedback" class="status-msg" style="display: none; margin-top: 1rem;"></div>
-        </form>
+  <!-- ═══════════════════════════════════════
+       VIEW: GESTIÓN INSTITUCIONAL
+  ═══════════════════════════════════════ -->
+  <div id="view-gestion" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-gestion">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label">Soporte — Institución</div>
+        <div class="view-header-title">Gestión Institucional</div>
+      </div>
+    </div>
+    <div class="scroll-area" style="flex:1; min-height:0; padding:0 16px 80px;">
 
-        <!-- Panel de Resultados (FODA) -->
-        <div id="foda-results-panel" class="glass-card" style="display: none; margin-top: 2rem; border-top: 3px solid var(--accent-emerald);">
-          <div class="card-header">
-            <span class="professional-icon" data-icon="sparkles"></span>
-            <h3>Síntesis FODA MINEDU V10.0</h3>
+      <!-- PAT -->
+      <div class="gestion-card">
+        <div class="gestion-card-header">
+          <div class="gestion-card-icon icon-terracotta">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           </div>
-          <p class="subtitle" style="font-size:0.85rem; margin-bottom: 1rem;">Análisis automatizado de su auditoría CGE y PESTEL.</p>
-          
-          <div id="foda-content" style="font-size: 0.9rem; line-height: 1.6;">
-              <!-- Se inyecta dinámicamente -->
-          </div>
+          <div class="gestion-card-title">Plan Anual de Trabajo (PAT)</div>
+        </div>
+        <div class="gestion-card-desc">Genera o actualiza tu PAT institucional con objetivos, actividades y responsables alineados al PEI.</div>
+        <div class="gestion-btn-row">
+          <button class="btn btn-primary btn-sm btn-gestion-wizard" data-type="PAT" style="flex:1;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+            Asistente IA
+          </button>
+          <button class="btn btn-secondary btn-sm btn-upload-trigger" style="flex:1;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            Subir PAT
+          </button>
+          <input type="file" class="hidden-file-input" accept=".pdf,.docx" data-type="pat">
         </div>
       </div>
-      <!-- END DIAGNOSTIC VIEW -->
 
-      <!-- ========================================== -->
-      <!-- VIEW: LOGIN                                -->
-      <!-- ========================================== -->
-    <div id="login-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="lock"></span>
+      <!-- PEI -->
+      <div class="gestion-card">
+        <div class="gestion-card-header">
+          <div class="gestion-card-icon icon-gold">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           </div>
-          <h1>Portal de Acceso</h1>
-          <p class="subtitle">Autenticación requerida para acceder a los servicios pedagógicos.</p>
-        </header>
+          <div class="gestion-card-title">Proyecto Educativo Institucional (PEI)</div>
+        </div>
+        <div class="gestion-card-desc">Construye el PEI de tu IE: misión, visión, diagnóstico FODA, objetivos estratégicos y propuesta pedagógica.</div>
+        <div class="gestion-btn-row">
+          <button class="btn btn-primary btn-sm btn-gestion-wizard" data-type="PEI" style="flex:1;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+            Asistente IA
+          </button>
+          <button class="btn btn-secondary btn-sm btn-upload-trigger" style="flex:1;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            Subir PEI
+          </button>
+          <input type="file" class="hidden-file-input" accept=".pdf,.docx" data-type="pei">
+        </div>
+      </div>
 
-        <form id="login-form" class="form-section">
-          <div class="glass">
-            <div class="form-group">
-              <label for="login-username">Usuario o Correo</label>
-              <input type="text" id="login-username" name="username" placeholder="Tu usuario o correo electrónico" required />
-            </div>
+      <!-- RI -->
+      <div class="gestion-card">
+        <div class="gestion-card-header">
+          <div class="gestion-card-icon icon-sage">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sage)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
           </div>
-          <div class="glass">
-            <div class="form-group">
-              <label for="login-password">Contraseña</label>
-              <input type="password" id="login-password" name="password" placeholder="Tu contraseña segura" required />
-            </div>
+          <div class="gestion-card-title">Reglamento Interno (RI)</div>
+        </div>
+        <div class="gestion-card-desc">Genera el RI conforme a la normativa MINEDU con derechos, obligaciones, faltas y sanciones.</div>
+        <div class="gestion-btn-row">
+          <button class="btn btn-primary btn-sm btn-gestion-wizard" data-type="RI" style="flex:1;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+            Asistente IA
+          </button>
+          <button class="btn btn-secondary btn-sm btn-upload-trigger" style="flex:1;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            Subir RI
+          </button>
+          <input type="file" class="hidden-file-input" accept=".pdf,.docx" data-type="ri">
+        </div>
+      </div>
+
+      <!-- DIAGNÓSTICO IE -->
+      <div class="gestion-card">
+        <div class="gestion-card-header">
+          <div class="gestion-card-icon icon-slate">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7B9AC4" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
-          <div class="toggle-auth-mode">
-            <p>¿No tienes una cuenta? <span id="btn-show-register">Regístrate aquí</span></p>
+          <div class="gestion-card-title">Diagnóstico Institucional</div>
+        </div>
+        <div class="gestion-card-desc">Sube actas, registros o informes. La IA extrae datos clave y genera un diagnóstico estructurado.</div>
+        <div class="gestion-btn-row">
+          <button class="btn btn-primary btn-sm btn-gestion-wizard" data-type="DIAGNOSTICO" style="flex:1;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+            Asistente IA
+          </button>
+          <button class="btn btn-secondary btn-sm btn-upload-trigger" style="flex:1;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            Subir doc.
+          </button>
+          <input type="file" class="hidden-file-input" accept=".pdf,.docx" data-type="diagnostico">
+        </div>
+      </div>
+    </div>
+  </div><!-- /view-gestion -->
+
+
+  <!-- ═══════════════════════════════════════
+       VIEW: GESTION WIZARD
+  ═══════════════════════════════════════ -->
+  <div id="view-gestion-wizard" class="view">
+    <div class="view-header">
+      <button class="btn-back" id="back-gestion-wizard">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="view-header-text">
+        <div class="view-header-label" id="wizard-label">Asistente</div>
+        <div class="view-header-title" id="wizard-title">Wizard</div>
+      </div>
+    </div>
+    <div class="scroll-area" style="flex:1; min-height:0; padding:0 16px 80px;">
+      <div class="wizard-indicators" id="wizard-indicators">
+        <div class="wizard-step-indicator active"></div>
+        <div class="wizard-step-indicator"></div>
+        <div class="wizard-step-indicator"></div>
+        <div class="wizard-step-indicator"></div>
+      </div>
+      <div id="wizard-subtitle" style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px;"></div>
+      <div class="card" style="padding:16px; margin-bottom:16px;">
+        <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:6px;" id="wizard-question-title"></div>
+        <div style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;" id="wizard-question-desc"></div>
+        <div id="wizard-inputs"></div>
+      </div>
+      <button class="btn btn-primary" id="btn-wizard-next">
+        Continuar
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+  </div><!-- /view-gestion-wizard -->
+
+
+  <!-- ═══════════════════════════════════════
+       VIEW: LOGIN
+  ═══════════════════════════════════════ -->
+  <div id="view-login" class="view">
+    <div class="scroll-area" style="flex:1; min-height:0;">
+      <div class="login-hero">
+        <svg class="login-logo" viewBox="820 300 420 420" xmlns="http://www.w3.org/2000/svg">
+          <path fill="#B9583B" d="M1009.74 411.912L1038.21 411.892L1038.44 680.902L1009.69 680.855Z"/>
+          <path fill="var(--text)" d="M1214.9 324.075C1216.55 327.24 1215.89 568.289 1215.95 591.657C1164 617.989 1106.32 649.928 1054.85 678.03L1054.4 677.594C1052.4 672.632 1053.65 433.51 1053.64 410.169Z"/>
+          <path fill="var(--text)" d="M832.334 323.61C886.295 351.645 940.791 381.473 994.521 410.085L994.646 676.652L994.158 677.233C990.361 677.991 849.184 600.442 832.241 591.503Z"/>
+          <path fill="var(--text)" d="M1022.58 244.459C1081.36 244.984 1127.14 268.157 1163.84 313.61L1152.4 321.618C1149.51 318.087 1146.51 314.654 1143.4 311.324C1112 277.747 1072.5 260.477 1026.83 258.931C971.249 258.903 931.308 280.086 895.813 321.932L884.436 313.215C920.071 268.24 965.663 246.624 1022.58 244.459Z"/>
+        </svg>
+        <div class="login-title">DOCENT<span>-IA</span></div>
+        <div class="login-sub">Tu asistente pedagógico para el CNEB peruano</div>
+      </div>
+      <div class="px-4" style="padding-bottom:40px;">
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tab-login">Iniciar sesión</button>
+          <button class="auth-tab" id="tab-register">Registrarse</button>
+        </div>
+
+        <form id="login-form" novalidate style="display:flex; flex-direction:column;">
+          <div class="form-group">
+            <label class="form-label">Correo electrónico <span class="required">*</span></label>
+            <input class="form-input" type="email" name="email" placeholder="profe@correo.com" required>
           </div>
+          <div class="form-group">
+            <label class="form-label">Contraseña <span class="required">*</span></label>
+            <input class="form-input" type="password" name="password" placeholder="••••••••" required minlength="6">
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-login">Entrar a DOCENT-IA</button>
         </form>
 
-        <form id="register-form" class="form-section" style="display: none;">
-          <div class="glass">
-            <div class="form-group">
-              <label for="reg-username">Nuevo Usuario</label>
-              <input type="text" id="reg-username" name="username" placeholder="Elige un nombre de usuario" required />
-            </div>
+        <form id="register-form" novalidate style="display:none; flex-direction:column;">
+          <div class="form-group">
+            <label class="form-label">Nombre completo <span class="required">*</span></label>
+            <input class="form-input" type="text" name="nombre" placeholder="Tu nombre" required>
           </div>
-          <div class="glass">
-            <div class="form-group">
-              <label for="reg-email">Correo Electrónico</label>
-              <input type="email" id="reg-email" name="email" placeholder="tucorreo@ejemplo.com" required />
-            </div>
+          <div class="form-group">
+            <label class="form-label">Correo electrónico <span class="required">*</span></label>
+            <input class="form-input" type="email" name="email" placeholder="profe@correo.com" required>
           </div>
-          <div class="glass">
-            <div class="form-group">
-              <label for="reg-password">Contraseña</label>
-              <input type="password" id="reg-password" name="password" placeholder="Crea una contraseña segura" required />
-            </div>
+          <div class="form-group">
+            <label class="form-label">Contraseña <span class="required">*</span></label>
+            <input class="form-input" type="password" name="password" placeholder="Mínimo 6 caracteres" required minlength="6">
           </div>
-          <div class="toggle-auth-mode">
-            <p>¿Ya tienes una cuenta? <span id="btn-show-login">Inicia sesión</span></p>
-          </div>
+          <button type="button" class="btn btn-primary" id="btn-register">Crear cuenta</button>
         </form>
       </div>
-      <!-- END LOGIN VIEW -->
-
-    <!-- VISTA: CONSTRUCTOR DE RÚBRICAS -->
-    <div id="rubric-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="clipboard"></span>
-          </div>
-          <h1>Evaluación por Competencias</h1>
-          <p class="subtitle">Diseño de instrumentos técnicos para la valoración del desempeño estudiantil.</p>
-        </header>
-
-        <div class="glass-card">
-            <div class="input-group">
-                <label for="rubric-topic">Tema / Competencia</label>
-                <input type="text" id="rubric-topic" placeholder="Ej: Redacción de ensayos instructivos">
-            </div>
-
-            <div class="rubric-matrix-container">
-                <table id="rubric-table">
-                    <thead>
-                        <tr id="levels-header">
-                            <th>Criterio</th>
-                            <th>Inicio</th>
-                            <th>Proceso</th>
-                            <th>Esperado</th>
-                            <th>Destacado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rubric-body">
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="rubric-controls">
-                <button type="button" id="btn-add-criterion" class="secondary-btn">➕ Añadir Criterio</button>
-            </div>
-            
-            <div id="rubric-status" class="status-msg" style="display: none;"></div>
-        </div>
     </div>
+  </div><!-- /view-login -->
 
-    <!-- VISTA: HUB DE PLANIFICACIÓN -->
-    <div id="planning-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="calendar"></span>
-          </div>
-          <h1>Programación Curricular</h1>
-          <p class="subtitle">Monitoreo y gestión de sus documentos de planificación técnico-pedagógica.</p>
-        </header>
 
-        <div class="planning-dashboard">
-            <div class="glass-card planning-card">
-                <div class="card-header">
-                    <span class="card-icon">📅</span>
-                    <h3>Plan Anual</h3>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar" style="width: 0%" id="progress-anual"></div>
-                </div>
-                <p class="status-text" id="status-anual">No iniciado</p>
-                <button class="secondary-btn btn-plan" data-type="anual">Gestionar</button>
-            </div>
-
-            <div class="glass-card planning-card">
-                <div class="card-header">
-                    <span class="card-icon">📂</span>
-                    <h3>Unidades</h3>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar" style="width: 0%" id="progress-unidades"></div>
-                </div>
-                <p class="status-text" id="status-unidades">0 Unidades generadas</p>
-                <button class="secondary-btn btn-plan" data-type="unidad">Gestionar</button>
-            </div>
-
-            <div class="glass-card planning-card">
-                <div class="card-header">
-                    <span class="card-icon">📚</span>
-                    <h3>Sesiones</h3>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar" style="width: 0%" id="progress-sesiones"></div>
-                </div>
-                <p class="status-text" id="status-sesiones">0 Sesiones hoy</p>
-                <button class="secondary-btn btn-plan" data-type="sesion">Gestionar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- VISTA: GENERADOR DE UNIDADES -->
-    <div id="unit-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="folder"></span>
-          </div>
-          <h1>Diseño de Unidad Didáctica</h1>
-          <p class="subtitle">Definición de propósitos de aprendizaje y situaciones significativas.</p>
-        </header>
-
-        <form id="unit-form" class="glass-card">
-            <div class="input-group">
-                <label>Título de la Unidad</label>
-                <input type="text" id="unit-title" name="title" placeholder="Ej: Fortalecemos nuestra identidad..." required>
-            </div>
-
-            <div class="input-group">
-                <label>Situación Significativa</label>
-                <textarea id="unit-situation" name="situation" placeholder="Describe el contexto, el reto y el producto final..." required style="height: 120px;"></textarea>
-            </div>
-
-            <div class="form-row">
-                <div class="input-group">
-                    <label>Grado</label>
-                    <select id="unit-grade" name="grade" required>
-                        <option value="">Selecciona...</option>
-                        <option value="1">1ero</option>
-                        <option value="2">2do</option>
-                        <option value="3">3ero</option>
-                        <option value="4">4to</option>
-                        <option value="5">5to</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Duración (Semanas)</label>
-                    <input type="number" id="unit-duration" name="duration" min="1" max="10" value="4" required>
-                </div>
-            </div>
-        </form>
-    </div>
-
-    <!-- VISTA: GENERADOR DE SESIONES -->
-    <div id="session-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="book"></span>
-          </div>
-          <h1>Planificación de Sesión</h1>
-          <p class="subtitle">Estructuración de procesos pedagógicos y momentos de aprendizaje.</p>
-        </header>
-
-        <form id="session-form" class="glass-card">
-            <div class="input-group">
-                <label>Tema de la Sesión</label>
-                <input type="text" id="session-topic" name="topic" placeholder="Ej: La importancia del agua..." required>
-            </div>
-
-            <div class="input-group">
-                <label>Propósito de Aprendizaje</label>
-                <textarea id="session-purpose" name="purpose" placeholder="¿Qué aprenderán los estudiantes hoy?" required style="height: 80px;"></textarea>
-            </div>
-
-            <div class="form-row">
-                <div class="input-group">
-                    <label>Duración (Minutos)</label>
-                    <select id="session-duration" name="duration" required>
-                        <option value="45">45 min</option>
-                        <option value="90" selected>90 min</option>
-                        <option value="135">135 min</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Grado</label>
-                    <input type="text" id="session-grade" name="grade" placeholder="Ej: 3ero B" required>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>Materiales y Recursos</label>
-                <input type="text" id="session-resources" name="resources" placeholder="Ej: Papelotes, plumones, laptop...">
-            </div>
-        </form>
-    </div>
-
-    <!-- VISTA: CONVIVENCIA ESCOLAR -->
-    <div id="convivencia-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="users"></span>
-          </div>
-          <h1>Bienestar y Convivencia</h1>
-          <p class="subtitle">Consultoría técnica sobre protocolos de atención y clima institucional.</p>
-        </header>
-        <form id="convivencia-form" class="glass-card">
-            <div class="input-group">
-                <label>Caso o Situación</label>
-                <textarea id="convivencia-query" name="query" placeholder="Ej: ¿Qué hacer ante un caso de bullying físico?" required style="height: 100px;"></textarea>
-            </div>
-            <button type="submit" class="primary-btn">Consultar Protocolo</button>
-        </form>
-    </div>
-
-    <!-- VISTA: GESTIÓN INSTITUCIONAL (II.GG.) -->
-    <div id="gestion-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="building"></span>
-          </div>
-          <h1>Gestión Institucional</h1>
-          <p class="subtitle">Instrumentos de Gestión (II.GG.) que regulan la vida institucional de su escuela bajo la RM N° 501-2025.</p>
-        </header>
-
-        <!-- Diagrama de Cascada Visual -->
-        <div class="glass-card" style="text-align:center; padding:1rem;">
-            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">Modelo de Planificación en Cascada</p>
-            <div style="display:flex; align-items:center; justify-content:center; gap:0.3rem; flex-wrap:wrap; font-size:0.8rem; font-weight:600;">
-                <span style="background:var(--accent-amber); color:#000; padding:0.3rem 0.6rem; border-radius:8px;">PEI/PCI</span>
-                <span style="color:var(--text-muted);">→</span>
-                <span style="background:var(--accent-rose); color:#fff; padding:0.3rem 0.6rem; border-radius:8px;">Plan Anual</span>
-                <span style="color:var(--text-muted);">→</span>
-                <span style="background:var(--accent-teal); color:#fff; padding:0.3rem 0.6rem; border-radius:8px;">Unidad</span>
-                <span style="color:var(--text-muted);">→</span>
-                <span style="background:var(--accent-indigo); color:#fff; padding:0.3rem 0.6rem; border-radius:8px;">Sesión</span>
-            </div>
-        </div>
-
-        <div class="planning-dashboard" style="margin-top:1rem;">
-            <div class="glass-card planning-card">
-                <div class="card-header">
-                    <span class="card-icon">📗</span>
-                    <h3>PCI</h3>
-                </div>
-                <p style="font-size:0.8rem; color:var(--text-muted);">Proyecto Curricular Institucional: Diversificación curricular y propuesta pedagógica.</p>
-                <div class="gestion-actions">
-                    <button class="secondary-btn btn-gestion-wizard" data-type="pci">Asistente</button>
-                    <button class="minimal-btn btn-upload-trigger" data-type="pci">📁 Subir</button>
-                    <input type="file" class="hidden-file-input" data-type="pci" style="display:none;" accept=".pdf,.doc,.docx,.txt">
-                </div>
-            </div>
-
-            <div class="glass-card planning-card">
-                <div class="card-header">
-                    <span class="card-icon">📘</span>
-                    <h3>PEI</h3>
-                </div>
-                <p style="font-size:0.8rem; color:var(--text-muted);">Proyecto Educativo Institucional: Identidad, diagnóstico y objetivos estratégicos.</p>
-                <div class="gestion-actions">
-                    <button class="secondary-btn btn-gestion-wizard" data-type="pei">Asistente</button>
-                    <button class="minimal-btn btn-upload-trigger" data-type="pei">📁 Subir</button>
-                    <input type="file" class="hidden-file-input" data-type="pei" style="display:none;" accept=".pdf,.doc,.docx,.txt">
-                </div>
-            </div>
-
-            <div class="glass-card planning-card">
-                <div class="card-header">
-                    <span class="card-icon">📙</span>
-                    <h3>PAT</h3>
-                </div>
-                <p style="font-size:0.8rem; color:var(--text-muted);">Plan Anual de Trabajo: Actividades, metas y cronograma institucional.</p>
-                <div class="gestion-actions">
-                    <button class="secondary-btn btn-gestion-wizard" data-type="pat">Asistente</button>
-                    <button class="minimal-btn btn-upload-trigger" data-type="pat">📁 Subir</button>
-                    <input type="file" class="hidden-file-input" data-type="pat" style="display:none;" accept=".pdf,.doc,.docx,.txt">
-                </div>
-            </div>
-
-            <div class="glass-card planning-card">
-                <div class="card-header">
-                    <span class="card-icon">📕</span>
-                    <h3>RI</h3>
-                </div>
-                <p style="font-size:0.8rem; color:var(--text-muted);">Reglamento Interno: Normas de convivencia y organización escolar.</p>
-                <div class="gestion-actions">
-                    <button class="secondary-btn btn-gestion-wizard" data-type="ri">Asistente</button>
-                    <button class="minimal-btn btn-upload-trigger" data-type="ri">📁 Subir</button>
-                    <input type="file" class="hidden-file-input" data-type="ri" style="display:none;" accept=".pdf,.doc,.docx,.txt">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- VISTA: ASISTENTE DE GESTIÓN (WIZARD) -->
-    <div id="gestion-wizard-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="building"></span>
-          </div>
-          <h1 id="wizard-title">Asistente de Gestión</h1>
-          <p class="subtitle" id="wizard-subtitle">Construcción colaborativa de instrumentos de gestión institucional.</p>
-        </header>
-
-        <div class="wizard-layout-container">
-            <div class="glass-card wizard-card">
-                <div class="wizard-progress">
-                    <div class="wizard-step-indicator active" id="step-1">1</div>
-                    <div class="wizard-line"></div>
-                    <div class="wizard-step-indicator" id="step-2">2</div>
-                    <div class="wizard-line"></div>
-                    <div class="wizard-step-indicator" id="step-3">3</div>
-                </div>
-
-                <div id="wizard-content" class="wizard-content-area">
-                    <h2 id="wizard-question-title" class="section-title">Iniciando...</h2>
-                    <p id="wizard-question-desc" class="wizard-desc">Estamos configurando el asistente para su documento.</p>
-                    
-                    <div id="wizard-inputs" class="wizard-inputs-container">
-                        <!-- Dinamically injected -->
-                    </div>
-
-                    <div id="wizard-suggestions" class="wizard-suggestions-container" style="margin-top: 1rem; display: none;">
-                        <p style="font-size: 0.72rem; color: var(--hint-color); text-transform: uppercase; margin-bottom: 0.5rem;">Sugerencias IA (Click para usar):</p>
-                        <div id="suggestions-list"></div>
-                    </div>
-                </div>
-                
-                <div id="wizard-feedback" class="status-msg" style="display: none;"></div>
-            </div>
-
-            <!-- Panel de Borrador Cognitivo -->
-            <div id="wizard-draft-panel" class="glass-card draft-panel">
-                <div class="draft-header">
-                    <span class="professional-icon" data-icon="edit"></span>
-                    <h3 style="margin:0;">Borrador Dinámico</h3>
-                    <div id="rag-badge" class="rag-badge" style="display:none;">Contexto RAG</div>
-                </div>
-                <div id="draft-content" class="draft-content placeholder">
-                    Responda las preguntas para ver cómo se construye su documento en tiempo real...
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- VISTA: METODOLOGÍAS ACTIVAS -->
-    <div id="metodologia-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="brain"></span>
-          </div>
-          <h1>Innovación Pedagógica</h1>
-          <p class="subtitle">Diseño de proyectos bajo metodologías activas y ABP.</p>
-        </header>
-        <form id="metodologia-form" class="glass-card">
-            <div class="input-group">
-                <label>Idea de Proyecto / Competencia</label>
-                <textarea id="metodologia-query" name="query" placeholder="Ej: Proyecto sobre reciclaje para 3ero de primaria usando ABP" required style="height: 100px;"></textarea>
-            </div>
-            <button type="submit" class="primary-btn">Generar Estructura</button>
-        </form>
-    </div>
-
-    <!-- VISTA: MIS MATERIALES -->
-    <div id="materials-view" class="view-container" style="display: none;">
-        <header class="header">
-          <div class="header-icon-wrapper">
-            <span class="professional-icon" data-icon="archive"></span>
-          </div>
-          <h1>Repositorio Personal</h1>
-          <p class="subtitle">Acceso histórico a sus documentos pedagógicos generados.</p>
-        </header>
-
-        <!-- Loading skeleton -->
-        <div id="materials-loading" class="glass-card" style="display:none;">
-            <div class="skeleton-line" style="width:60%;height:18px;margin-bottom:12px;border-radius:6px;background:var(--glass-border);animation:shimmerText 1.2s infinite;"></div>
-            <div class="skeleton-line" style="width:40%;height:12px;border-radius:6px;background:var(--glass-border);animation:shimmerText 1.2s infinite 0.2s;"></div>
-        </div>
-
-        <!-- Empty state -->
-        <div id="materials-empty" class="glass-card" style="display:none;text-align:center;padding:2rem;">
-            <div style="font-size:3rem;margin-bottom:1rem;">📭</div>
-            <p style="color:var(--text-muted);">Aún no has generado ningún material.<br>¡Crea tu primera sesión o rúbrica!</p>
-        </div>
-
-        <!-- List -->
-        <div id="materials-list" class="materials-list"></div>
-    </div>
-
-    </div>
-    <!-- Premium Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay">
-      <div class="spinner-outer">
-        <div class="spinner-inner"></div>
-      </div>
-      <div class="loading-text">Procesando...</div>
-    </div>
-
-    <script src="./main.js" type="module"></script>
-  </body>
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="nav-tab active" data-view="dashboard">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Inicio</span>
+    </button>
+    <button class="nav-tab" data-view="planificacion">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>Plan</span>
+    </button>
+    <button class="nav-tab" data-view="materiales">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>Docs</span>
+    </button>
+    <button class="nav-tab" data-view="perfil">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span>Perfil</span>
+    </button>
+  </nav>
+</div><!-- /app -->
+<script src="main.js"></script>
+</body>
 </html>
